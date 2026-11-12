@@ -1996,24 +1996,7 @@ With prefix arg (noninteractively: 2nd arg), load the file after compiling."
   ;; Expand now so we get the current buffer's defaults
   (setq filename (expand-file-name filename))
 
-  ;; Lexical-binding refusal (lexbind P1, work item 8; ported from the
-  ;; prototype/lexbind-capture-spike refusal path).  There is no cconv
-  ;; pass yet, so byte-compiling a lexical-binding: t file would
-  ;; silently dynamic-bind it, which is runtime-wrong.  Refuse loudly
-  ;; instead.  Stays until P2.
-  (with-temp-buffer
-    (insert-file-contents filename)
-    (goto-char (point-min))
-    ;; Only the first line is scanned: the cookie must be in the
-    ;; first-line -*- ... -*- block (all currently lexbound files have
-    ;; it there), and scanning the whole file false-positives on this
-    ;; very file, whose refusal code and comments legitimately mention
-    ;; "lexical-binding: t".
-    (if (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b"
-			   (line-end-position) t)
-	(error "%s declares lexical-binding: t; refusing to byte-compile it --
-no closure conversion yet; see docs/planning/lexbinding-milestone.md"
-	       filename)))
+
 
   ;; If we're compiling a file that's in a buffer and is modified, offer
   ;; to save it first.
@@ -2607,6 +2590,10 @@ list that represents a doc string reference.
   (if (and (> (length form) 3) (not (stringp (nth 3 form))))
       (byte-compile-warn "Third arg to %s %s is not a string: %s"
 			 (car form) (nth 1 form) (nth 3 form)))
+  ;; P2-1 cconv: track defvar'd/defconst'd vars as specials so they
+  ;; stay on the dynamic path and are exempt from capture.
+  (when (and (byte-compile-lexbind-p) (symbolp (nth 1 form)))
+    (push (nth 1 form) byte-compile-lexical-specials))
   (if (null (nth 3 form))
       ;; Since there is no doc string, we can compile this as a normal form,
       ;; and not do a file-boundary.
@@ -3032,10 +3019,9 @@ If FORM is a lambda or a macro, byte-compile it as a function."
                              ;; compilation this, thank you Alan Mackenzie.
                              ;;
                              ;; This assumes advice.el knows what it's doing
-                             ;; and that the new lambda should be called
-                             ;; interactively in the same way as the original
-                             ;; function, which is a fair assumption for
-                             ;; advice.el.
+                             ;; and the new lambda should be called in the
+                             ;; same way as the original function, which is
+                             ;; a fair assumption for advice.el.
                              (not (compiled-function-p (cadr int))))
                              ;; #### Consider a compile time error if (cadr
                              ;; INT) is non-list, non-string,
@@ -3046,23 +3032,31 @@ If FORM is a lambda or a macro, byte-compile it as a function."
 				 `(lambda ()
 				   ;; Generate a compiled function that returns
 				   ;; a cons of a list describing which of the
-				   ;; interactive arguments should be saved on
-				   ;; the command history as (point), (mark),
-				   ;; (region-beginning), (region-end), and the
-				   ;; actual interactive arguments themselves.
-				   ;;
-				   ;; #'call-interactive knows how to handle
-				   ;; these annotations at runtime, if the
-				   ;; interactive spec is a compiled function.
-				   (cons ,(byte-compile-annotate-interactive
-					   (nth 1 int))
-				         ,(nth 1 int)))
-				 name)))))
-		 ((cdr int)
-		  ;; Error here instead of on the call to #'nth further down,
-		  ;; giving a clearer error message.
-		  (error 'syntax-error "Malformed interactive spec" int)))))
+				   ;; variables passed interactively are not nil.
+				   (cons (function
+					 (lambda (args)
+					   (mapcar
+					    #'car
+					    (mapcar #'cdr
+						    args))))
+					 (mapcar
+					  (function
+					   #'(lambda (x)
+					     (list (car x)
+						   (car (cdr x))
+						   (not (null
+							(cdr (cdr x)))))))
+					 (list ,,(cadr int))))))
+				  (list (cddr int)))))))
+    ;; P2-1 cconv: in lexical mode, push the lambda's own argument frame
+    ;; so the body's variable lookups see the arg binding as an own-frame
+    ;; (boxed) variable.  The frame is popped after the body is compiled.
+    (when (byte-compile-lexbind-p)
+      (byte-compile-lexbind-push-frame
+        (byte-compile-lexbind-argvars arglist)))
     (let ((compiled (byte-compile-top-level (cons 'progn body) nil 'lambda)))
+      (when (byte-compile-lexbind-p)
+        (byte-compile-lexbind-pop-frame))
       (if (memq 'unused-vars byte-compile-warnings)
 	  ;; done compiling in this scope, warn now.
 	  (byte-compile-warn-about-unused-variables))
@@ -3390,63 +3384,40 @@ keyword %s, forcing function quoting" (car form) function)))
 
 ;; P2-1 (#157): closure conversion for byte-compiled lexical binding.
 ;;
-;; Design (frame cells, per docs/planning/lexbinding-milestone.md P2-2):
-;;   - every *captured* variable (referenced by an escaping closure)
-;;     is boxed once, at its binding frame, into a shared cons cell
-;;     parked in that frame's dynamic slot for the variable; closure
-;;     creation pushes the cell into the new closure's environment
-;;     vector, and Blexref/Blexset (P2-3) read/write through it.
-;;   - *special* (defvar'd) variables keep the dynamic path (specpdl
-;;     varbind/varset); the compiler tracks `defvar' proclamations in
-;;     the file and exempts them from lexical treatment.
-;;   - a frame that does not bind v but contains a closure capturing v
-;;     must re-expose v for that closure: at frame entry it creates a
-;;     fresh cell from the captured value and varbinds the dynamic
-;;     slot to it (the "relay"); its own setqs additionally lexset the
-;;     outer cell so the enclosing scope observes mutations.
-
+;; Frame cells (per docs/planning/lexbinding-milestone.md P2 section):
+;;   - Every non-special, non-self-evaluating local binding (let / let* /
+;;     arglist) that is captured by an escaping closure is BOXED into a
+;;     shared cons cell parked in the frame's dynamic slot for the
+;;     variable.  Own-frame reads/writes go varref+car / varref+setcar
+;;     so the value is mutated in place for every closure that holds
+;;     the cell; closure creation pushes the cell into the new closure's
+;;     environment vector, and Blexref/Blexset (P2-3) read/write through
+;;     it.
+;;   - Non-captured locals keep the plain dynamic path (byte-varref /
+;;     byte-varset / byte-varbind) with no cell overhead.
+;;   - *Special* (defvar'd) variables stay dynamic and are exempt from
+;;     capture: the compiler tracks `defvar'/`defconst' proclamations
+;;     in `byte-compile-lexical-specials'.
+;;   - A frame that does not bind v but contains a closure capturing v
+;;     (a relay hop from an enclosing function) re-exposes v by relaying
+;;     the outer cell: the inner frame's env entry for v is the SAME
+;;     cell the outer frame's env carries, so nested captures stay
+;;     shared.
 
 (defvar byte-compile-lexical-binding nil
   "Non-nil when the compiled buffer declares `lexical-binding: t'.")
 
 (defvar byte-compile-lexical-specials nil
   "List of variables declared dynamic in the compiled buffer by
-`defvar'/`defvar-local'/`defvaralias'.")
+`defvar'/`defvar-local'/`defvaralias'/`defconst' (tracked by cconv).")
 
-(defvar byte-compile-lexenv nil
-  "Dynamic alist of the current lambda frame, `var => KIND', innermost
-first.  KIND is one of:
-
-`dynamic' -- the variable is dynamic in this frame (plain
-    byte-varref/byte-varset/byte-varbind).
-`cell' -- the frame's dynamic slot holds the shared cons cell; reads
-    emit byte-varref + byte-car, writes byte-varref + byte-setcar.
-(lexref . I) -- the variable lives in this closure's environment
-    vector at slot I; reads emit byte-lexref I, writes byte-lexset I.
-(relay . I) -- same as lexref, but the frame's dynamic slot also
-    holds a fresh cell; reads still emit byte-lexref I, writes emit
-    byte-lexset I plus byte-varref + byte-setcar into the relay cell.")
-
-(defvar byte-compile-lexbind-last-captures nil
-  "Captures of the lambda most recently compiled by
-`byte-compile-lexbind-top-level'; used at closure creation sites.")
-
-(defvar byte-compile-lexbind-last-proto nil
-  "Proto pieces (ARGLIST INSTRUCTIONS CONSTANTS DEPTH DOC INT) of the
-lambda most recently compiled by `byte-compile-lexbind-top-level'.")
-
-(defvar byte-compile-lexbind-frame-boxes nil
-  "In the current frame, the set of own-vars to box (list, for
-quick memq); set at frame entry by `byte-compile-lexbind-top-level'.")
-
-(defvar byte-compile-lexbind-frame-relays nil
-  "In the current frame, the set of relay vars (list, for quick memq);
-set at frame entry by `byte-compile-lexbind-top-level'.")
-
-(defvar byte-compile-lexbind-frame-nested-free nil
-  "In the current frame, the set of free-vars in nested closures that
-are not bound by this frame (i.e. relay candidates); set at frame
-entry by `byte-compile-lexbind-top-level'.")
+(defvar byte-compile-lexbind-frame nil
+  "Stack of active frames in the current lexical compilation, innermost
+first.  Each frame is an alist `var => (env-index . captured-p)' for the
+variables bound by that frame's arglist (or let/let* that introduces a
+scope); `env-index' is the closure-environment slot for a variable
+that came from an enclosing function (a capture), nil when the frame
+binds the variable itself.")
 
 (defun byte-compile-lexbind-cookie-p (buffer)
   "Non-nil if BUFFER's first line declares `lexical-binding: t'."
@@ -3461,6 +3432,156 @@ entry by `byte-compile-lexbind-top-level'.")
   (or (memq var byte-compile-lexical-specials)
       (and (boundp var) (special-variable-p var))))
 
+(defun byte-compile-lexbind-boxable-p (var)
+  "Non-nil if VAR may be boxed into a frame cell in lexical mode: not
+self-evaluating/constant, not keyword, not a special (dynamic) variable."
+  (and (symbolp var)
+       (not (memq var '(nil t)))
+       (not (keywordp var))
+       (not (byte-compile-lexbind-special-p var))))
+
+(defun byte-compile-variable-ref (base-op var &optional varbind-flags)
+  "Emit bytecode for referencing VAR with opcode BASE-OP.
+In lexical mode, captures route through Blexref/Blexset + frame cell.
+Otherwise the plain dynamic path."
+  (if (or (not (symbolp var)) (byte-compile-self-evaluating-symbol-p var))
+      (byte-compile-warn
+       (case base-op
+        (byte-varref "Variable reference to %s %s")
+        (byte-varset "Attempt to set %s %s")
+        (byte-varbind "Attempt to let-bind %s %s"))
+       (if (symbolp var) "constant symbol" "non-symbol")
+       var)
+    (when (and (not (eq base-op 'byte-varref))
+               (byte-compile-constant-symbol-p var))
+      (byte-compile-warn
+       (case base-op
+        (byte-varset "Attempt to set %s %S")
+        (byte-varbind "Attempt to let-bind %s %S"))
+       "constant symbol" var))
+    ;; Go ahead and compile the form, given that the non-nil, non-t, non-keyword
+    ;; symbols that are constant will vary from XEmacs to XEmacs.
+    (if (and (get var 'byte-obsolete-variable)
+             (memq 'obsolete byte-compile-warnings))
+        (let ((ob (get var 'byte-obsolete-variable)))
+          (byte-compile-warn "%s is an obsolete variable; %s" var
+                             (if (stringp ob)
+                                 ob
+                               (format "use %s instead." ob)))))
+    (if (and (get var 'byte-compatible-variable)
+             (memq 'pedantic byte-compile-warnings))
+        (let ((ob (get var 'byte-compatible-variable)))
+          (byte-compile-warn "%s is provided for compatibility; %s" var
+                             (if (stringp ob)
+                                 ob
+                               (format "use %s instead." ob)))))
+    (if (memq 'free-vars byte-compile-warnings)
+        (if (eq base-op 'byte-varbind)
+            (setq byte-compile-bound-variables
+                  (cons (cons var (or varbind-flags 0))
+                        byte-compile-bound-variables))
+          (or (globally-boundp var)
+              (let ((cell (assq var byte-compile-bound-variables)))
+                (if cell (setcdr cell
+                                  (logior (cdr cell)
+                                          (if (eq base-op 'byte-varset)
+                                              byte-compile-assigned-bit
+                                            byte-compile-referenced-bit))))
+              (and (boundp 'current-load-list)
+                   (memq var current-load-list))
+              (if (eq base-op 'byte-varset)
+                  (or (memq var byte-compile-free-assignments)
+                      (progn
+                        (byte-compile-warn "assignment to free variable %s"
+                                           var)
+                        (setq byte-compile-free-assignments
+                              (cons var byte-compile-free-assignments))))
+                (or (memq var byte-compile-free-references)
+                    (progn
+                      (byte-compile-warn "reference to free variable %s" var)
+                      (setq byte-compile-free-references
+                            (cons var byte-compile-free-references)))))))))
+    ;; P2-1 cconv routing: in lexical mode, capture-aware.
+    (let* ((lex-active (and (byte-compile-lexbind-p)
+                            (not (byte-compile-lexbind-special-p var))))
+           (lookup (and lex-active (byte-compile-lexbind-lookup var))))
+      (if lookup
+          (let* ((entry (car lookup))
+                 (env-index (car entry))
+                 (captured-p (cdr entry)))
+            (cond
+             ;; VAR bound by this frame, not captured: cell in dynamic slot;
+             ;; read with car, write with setcar.
+             ((not captured-p)
+              (case base-op
+                (byte-varref (byte-compile-lexbind-varref-frame var))
+                (byte-varset (byte-compile-lexbind-varset-frame var))
+                (byte-varbind (byte-compile-lexbind-varbind-frame var))))
+             ;; VAR is a capture from an enclosing frame: read/write via
+             ;; Blexref on ENV-INDEX (the cell index in this closure's env).
+             (t
+              (case base-op
+                (byte-varref
+                 (byte-compile-out 'byte-lexref env-index)
+                 (byte-compile-out 'byte-car 0))
+                (byte-varset
+                 ;; Blexset pops the value and writes it into the cell
+                 ;; directly (same stack effect as plain byte-varset).
+                 (byte-compile-out 'byte-lexset env-index))
+                (byte-varbind
+                 ;; frame already created the relay cell in its env;
+                 ;; nothing to bind here
+                 nil)))))
+          ;; No active frame binds VAR (free/global/special): plain path.
+          (let ((tmp (assq var byte-compile-variables)))
+            (or tmp
+                (setq tmp (list var)
+                      byte-compile-variables (cons tmp byte-compile-variables)))
+            (byte-compile-out base-op tmp)))))
+
+;; ---- frame-cell emission helpers (cconv) ---------------------------
+
+(defun byte-compile-lexbind-varref-frame (var)
+  "Emit a read of VAR's frame cell: push cell, push its car."
+  (let ((tmp (assq var byte-compile-variables)))
+    (or tmp
+        (setq tmp (list var)
+              byte-compile-variables (cons tmp byte-compile-variables)))
+    (byte-compile-out 'byte-varref tmp)
+    (byte-compile-out 'byte-car 0)))
+
+(defun byte-compile-lexbind-varset-frame (var)
+  "Emit a write to VAR's frame cell: push cell, setcar consumes VALUE."
+  ;; stack: ... VALUE → ... VALUE CELL → ...
+  (let ((tmp (assq var byte-compile-variables)))
+    (or tmp
+        (setq tmp (list var)
+              byte-compile-variables (cons tmp byte-compile-variables)))
+    (byte-compile-out 'byte-varref tmp)
+    (byte-compile-out 'byte-setcar 0)))
+
+(defun byte-compile-lexbind-varbind-frame (var)
+  "Bind VAR's frame cell: wrap value in a cons cell, varbind."
+  ;; stack: ... VALUE → ... (VALUE . nil)
+  (byte-compile-out 'byte-constant 0)   ;; push nil marker
+  (byte-compile-out 'byte-cons 0)        ;; build (VALUE . nil)
+  (let ((tmp (assq var byte-compile-variables)))
+    (or tmp
+        (setq tmp (list var)
+              byte-compile-variables (cons tmp byte-compile-variables)))
+    (byte-compile-out 'byte-varbind tmp)))
+
+;; Read VAR's frame cell from its dynamic slot and push the cell onto
+;; the stack.  Used when building the env list for a closure: each
+;; captured variable contributes its cell.
+(defun byte-compile-lexbind-cell-of (var)
+  "Emit a reference that pushes VAR's frame cell."
+  (let ((tmp (assq var byte-compile-variables)))
+    (or tmp
+        (setq tmp (list var)
+              byte-compile-variables (cons tmp byte-compile-variables)))
+    (byte-compile-out 'byte-varref tmp)))
+
 (defun byte-compile-lexbind-argvars (arglist)
   "Names bound by ARGLIST (mandatory + optional + rest + key), in order."
   (let (vars)
@@ -3469,7 +3590,7 @@ entry by `byte-compile-lexbind-top-level'.")
                 (not (memq arglist '(&optional &rest &key &aux))))
       (push arglist vars)
       (setq arglist (cdr arglist)))
-    ;; &optional names
+    ;; &optional names (each entry may be NAME or (NAME DEFAULT))
     (when (eq arglist '&optional)
       (setq arglist (cdr arglist))
       (while (and (symbolp arglist)
@@ -3480,14 +3601,16 @@ entry by `byte-compile-lexbind-top-level'.")
         (setq arglist (cdr arglist))))
     ;; &rest name
     (when (eq arglist '&rest)
-      (when (symbolp (car-safe (cdr arglist)))
-        (push (car-safe (cdr arglist)) vars)
-      (setq arglist (cddr arglist)))
+      (setq arglist (cdr arglist))
+      (when (and (symbolp arglist)
+                 (not (memq arglist '(&key &aux))))
+        (push arglist vars)
+        (setq arglist (cdr arglist))))
     ;; &key names (keyword name is the var; default/present-flag skipped)
     (while (and (symbolp arglist) (not (eq arglist '&aux)))
       (cond ((eq arglist '&key)
              (setq arglist (cdr arglist)))
-            ((memq arglist '(&allow-other-keys &rest &aux))
+            ((memq arglist '(&allow-other-keys &rest))
              (setq arglist (cdr arglist)))
             ((consp (car-safe arglist))
              (when (symbolp (car-safe (car-safe arglist)))
@@ -3504,79 +3627,226 @@ name)."
       (cond ((consp v) (when (symbolp (car v)) (push (car v) names)))
             ((symbolp v) (push v names))))
     (nreverse names)))
+;; ---- cconv helpers -----------------------------------------------
 
-(defun byte-compile-lexbind-boxable-p (var)
-  "Non-nil if VAR may be boxed into a frame cell in lexical mode: it is
-not self-evaluating/constant (dynamic slot would be read), not
-special (stays on the dynamic path), and not the compiler's own
-bookkeeping symbols."
-  (and (symbolp var)
-       (not (memq var '(nil t)))
-       (not (byte-compile-lexbind-special-p var))))
+(defun byte-compile-lexbind-p ()
+  "Non-nil when compiling under lexical binding."
+  (and (boundp 'byte-compile-lexical-binding) byte-compile-lexical-binding))
 
-defun byte-compile-variable-ref (base-op var &optional varbind-flags)
-  (if (or (not (symbolp var)) (byte-compile-self-evaluating-symbol-p var))
-      (byte-compile-warn
-       (case base-op
-	 (byte-varref "Variable reference to %s %s")
-	 (byte-varset "Attempt to set %s %s")
-	 (byte-varbind "Attempt to let-bind %s %s"))
-       (if (symbolp var) "constant symbol" "non-symbol")
-       var)
-    (when (and (not (eq base-op 'byte-varref))
-	       (byte-compile-constant-symbol-p var))
-      (byte-compile-warn
-       (case base-op
-	 (byte-varset "Attempt to set %s %S")
-	 (byte-varbind "Attempt to let-bind %s %S"))
-       "constant symbol" var))
-      ;; Go ahead and compile the form, given those non-nil, non-t, non-keyword
-      ;; symbols that are constant will vary from XEmacs to XEmacs.
-    (if (and (get var 'byte-obsolete-variable)
-	     (memq 'obsolete byte-compile-warnings))
-	(let ((ob (get var 'byte-obsolete-variable)))
-	  (byte-compile-warn "%s is an obsolete variable; %s" var
-			     (if (stringp ob)
-				 ob
-			       (format "use %s instead." ob)))))
-    (if (and (get var 'byte-compatible-variable)
-	     (memq 'pedantic byte-compile-warnings))
-	(let ((ob (get var 'byte-compatible-variable)))
-	  (byte-compile-warn "%s is provided for compatibility; %s" var
-			     (if (stringp ob)
-				 ob
-			       (format "use %s instead." ob)))))
-    (if (memq 'free-vars byte-compile-warnings)
-	(if (eq base-op 'byte-varbind)
-	    (setq byte-compile-bound-variables
-		  (cons (cons var (or varbind-flags 0))
-			byte-compile-bound-variables))
-	  (or (globally-boundp var)
-	      (let ((cell (assq var byte-compile-bound-variables)))
-		(if cell (setcdr cell
-				 (logior (cdr cell)
-					 (if (eq base-op 'byte-varset)
-					     byte-compile-assigned-bit
-					   byte-compile-referenced-bit)))))
-	      (and (boundp 'current-load-list)
-		   (memq var current-load-list))
-	      (if (eq base-op 'byte-varset)
-		  (or (memq var byte-compile-free-assignments)
-		      (progn
-			(byte-compile-warn "assignment to free variable %s"
-					   var)
-			(setq byte-compile-free-assignments
-			      (cons var byte-compile-free-assignments))))
-		(or (memq var byte-compile-free-references)
-		    (progn
-		      (byte-compile-warn "reference to free variable %s" var)
-		      (setq byte-compile-free-references
-			    (cons var byte-compile-free-references)))))))))
-  (let ((tmp (assq var byte-compile-variables)))
-    (or tmp
-	(setq tmp (list var)
-	      byte-compile-variables (cons tmp byte-compile-variables)))
-    (byte-compile-out base-op tmp)))
+;; Walk a list of forms, collecting the symbols that occur in evaluation
+;; position.  Used to find a lambda's free variables.
+(defun byte-compile-lexbind-collect-symbols (forms)
+  (let (syms)
+    (dolist (f forms)
+      (labels ((walk (x)
+                 (cond
+                  ((symbolp x) (push x syms))
+                  ((consp x)
+                   (walk (car x))
+                   (walk (cdr x)))
+                  ((vectorp x)
+                   (dotree (v x)
+                   (when (symbolp v) (push v syms)))))))
+        (walk f)))
+    syms))
+
+;; Names bound by a let/let* VARLIST (each (name . init) or bare name).
+(defun byte-compile-lexbind-letvars (vars)
+  (let (names)
+    (dolist (v vars)
+      (cond ((consp v) (when (symbolp (car v)) (push (car v) names)))
+            ((symbolp v) (push v names))))
+    (nreverse names)))
+
+;; Symbols free in (LAMBDA ARGLIST . BODY): those collected from BODY
+;; (and default-value forms in ARGLIST) that are not bound by ARGLIST
+;; itself nor by a let/let*/nested-lambda arglist within BODY.
+(defun byte-compile-lexbind-free-vars (arglist body)
+  (let* ((own (byte-compile-lexbind-argvars arglist))
+         (shadow (copy-sequence own))
+         (result nil))
+    (labels
+        ((add-shadow (vars)
+           (dolist (v vars) (cl-pushnew v shadow)))
+         (walk-forms (forms)
+           (dolist (f forms)
+             (cond
+              ((atom f) (when (and (symbolp f) (not (memq f shadow)))
+                          (cl-pushnew f result)))
+              ((consp f)
+               (case (car f)
+                 (let (add-shadow (byte-compile-lexbind-letvars
+                                   (cadr f)))
+                   (walk-forms (cddr f))
+                   (walk-defaults (cadr f)))
+                 (let* (walk-let* (cadr f) (cddr f))
+                   (walk-defaults (cadr f)))
+                 (lambda (let ((inner (byte-compile-lexbind-argvars
+                                       (cadr f))))
+                            (add-shadow inner)
+                            (walk-forms (cddr f))))
+                 (t (walk-forms f)))))))
+         (walk-let* (varlist body)
+           (cond ((null varlist)
+                  (walk-forms body))
+                 ((consp (car varlist))
+                  (add-shadow (list (caar varlist)))
+                  (walk-forms (cdar varlist))
+                  (walk-let* (cdr varlist) body))
+                 (t
+                  (add-shadow (list (car varlist)))
+                  (walk-let* (cdr varlist) body))))
+         (walk-defaults (varlist)
+           ;; Default-value forms in optional/rest bindings are evaluated
+           ;; in the outer scope -- walk them for free symbols too.
+           (dolist (v varlist)
+             (when (and (consp v) (consp (cdr v)) (consp (cadr v)))
+               (walk-forms (list (cadr v)))))))
+      (walk-defaults arglist)
+      (walk-forms body))
+    result))
+
+;; Look up VAR in the frame stack, innermost first, WITHOUT side effects.
+;; Returns (ENTRY FRAME) where FRAME is the frame alist holding VAR and
+;; ENTRY is its (ENV-INDEX . CAPTURED-P) cell, or nil when no active
+;; frame binds VAR.
+(defun byte-compile-lexbind-lookup (var)
+  (let (frame entry)
+    (dolist (f byte-compile-lexbind-frame)
+      (when (setq entry (assq var f))
+        (setq frame f)
+        (return (cons entry frame))))
+    nil))
+
+;; Check if VAR is bound (boxed) in any active lexical frame.
+(defun byte-compile-lexbind-frame-cell-p (var)
+  "Non-nil if VAR has a frame cell in an active lexical frame."
+  (and (byte-compile-lexbind-p)
+       (not (byte-compile-lexbind-special-p var))
+       (byte-compile-lexbind-lookup var)))
+
+;; ---- frame management (cconv) --------------------------------------
+;; Design: box ALL frame variables.  Every non-special, non-self-
+;; evaluating let/let*/arglist binding in a lexbound function is boxed
+;; into a shared cons cell parked in its dynamic slot.  Own-frame
+;; reads: byte-varref + byte-car; writes: byte-varref + byte-setcar.
+;; A variable captured by a nested lambda is exposed to that lambda
+;; through its env list (7th make-byte-code arg, P2-2); the closure
+;; reads/writes it with Blexref/Blexset (P2-3).  Relay hops (inner
+;; lambda capturing a variable bound two-or-more frames out) pass
+;; the same cell through each intermediate closure's env, so all
+;; closures share the cell.
+
+;; Push a frame for the symbols bound by a let/let*/arglist; own
+;; bindings start with env-index=nil, captured-p=nil.
+(defun byte-compile-lexbind-push-frame (vars)
+  (push (mapcar #'(lambda (v) (cons v (cons nil nil))) vars)
+        byte-compile-lexbind-frame))
+
+(defun byte-compile-lexbind-pop-frame ()
+  (pop byte-compile-lexbind-frame))
+
+;; Compute the list of variables captured by FUN = (LAMBDA ARGLIST . BODY):
+;; those free in BODY (not bound by ARGLIST or any let/let*/inner-lambda
+;; arglist within BODY) that resolve to an enclosing frame via
+;; byte-compile-lexbind-lookup.  Order = order first encountered.
+(defun byte-compile-lexbind-captures-of-lambda (fun)
+  (let* ((free-vars (byte-compile-lexbind-free-vars
+                     (cadr fun) (cddr fun)))
+         (result nil))
+    (dolist (v free-vars)
+      (when (and (byte-compile-lexbind-p)
+                 (not (byte-compile-lexbind-special-p v))
+                 (byte-compile-lexbind-lookup v))
+        (push v result)))
+    (nreverse result)))
+
+;; Emit bytecode into the CURRENT stream that builds the env list for
+;; CAPTURES and leaves it on the stack:
+;;   nil → cell0.nil → cell1.(cell0.nil) → ... → cellN.(cellN-1...(cell0.nil))
+;; CAPTURES is in env-index order: index 0 = first capture, index 1 = second.
+(defun byte-compile-lexbind-emit-env-building (captures)
+  "Emit bytecode that pushes an ENV VEC onto the stack.
+CAPTURES is in env-index order: index 0 = first capture element,
+index N = last.  The VM opcode Blexref/Blexset expect a VECTOR.
+
+Stack plan:
+  push make-vector fn
+  push N
+  push nil
+  call make-vector → [nil nil ... nil]
+  dup the env vector
+  for i = 0..N-1:
+    push env (dup), push i, push cell_i, call aset
+  push env (final result)
+"
+  (let ((n (length captures)))
+    (if (= n 0)
+        (byte-compile-out 'byte-constant 0)
+      ;; Push make-vector fn, size, nil, then call.
+      (byte-compile-push-constant 'make-vector)
+      (byte-compile-push-constant n)
+      (byte-compile-push-constant nil)
+      (byte-compile-out 'byte-call 2)
+      ;; Stack: env
+      ;; For each captured cell, store it.  We need the env vector
+      ;; to remain on the stack, so dup it before each aset.
+      ;; Stack: env → env env (dup) → env env i (push i)
+      ;;        → env env i cell (push cell)
+      ;;        → env (aset consumes i+cell+env)
+      (let ((i 0))
+        (dolist (v captures)
+          (byte-compile-out 'byte-dup 0)    ;; keep env
+          (byte-compile-push-constant i)      ;; push index
+          (byte-compile-lexbind-cell-of v)   ;; push cell
+          (byte-compile-out 'byte-aset 0)    ;; aset(vector index value)
+          (incf i))))
+      ;; Stack: env
+      ))
+
+(defun byte-compile-lexbind-emit-closure (fun)
+  "Emit code to create a closure for LAMBDA-FUN at the current
+creation site.  The closure's env is a vector of captured cells read
+from the enclosing frame at this point; the lambda body is compiled
+via byte-compile-lambda and its proto args are embedded as constants.
+The 7th arg to make-byte-code (env) is the result of
+byte-compile-lexbind-emit-env-building."
+  (let* ((captures (byte-compile-lexbind-captures-of-lambda fun))
+         (proto (byte-compile-lambda fun)))
+    ;; Proto = (byte-code instructions constants depth &optional doc interactive)
+    ;; or (lambda ...) when trivial.
+    (if (eq 'byte-code (car-safe proto))
+        ;; Push args in order for make-byte-code:
+        ;; fn = make-byte-code
+        ;; arg1 = arglist = (nth 1 fun)
+        ;; arg2 = instructions
+        ;; arg3 = constants
+        ;; arg4 = depth
+        ;; arg5 = doc (Qnil if absent)
+        ;; arg6 = interactive (Qnil if absent)
+        ;; arg7 = env (built by emit-env-building)
+        (let ((args (cdr proto)))
+          (byte-compile-push-constant 'make-byte-code)
+          (byte-compile-push-constant (nth 1 fun))
+          ;; instructions
+          (when args (byte-compile-push-constant (car args)) (setq args (cdr args)))
+          ;; constants
+          (when args (byte-compile-push-constant (car args)) (setq args (cdr args)))
+          ;; depth
+          (when args (byte-compile-push-constant (car args)) (setq args (cdr args)))
+          ;; doc: optional string or nil
+          (if (and args (stringp (car args)))
+              (progn (byte-compile-push-constant (car args)) (setq args (cdr args)))
+            (byte-compile-push-constant nil))
+          ;; interactive: optional list or nil
+          (if (and args (listp (car args)))
+              (progn (byte-compile-push-constant (car args)) (setq args (cdr args)))
+            (byte-compile-push-constant nil))
+          ;; env — built here (not as a constant, since cells are runtime values)
+          (byte-compile-lexbind-emit-env-building captures)
+          (byte-compile-out 'byte-call 7))
+      ;; Trivial (interpreted) body — just push the lambda as a constant.
+      (byte-compile-push-constant proto)))
 
 (defmacro byte-compile-get-constant (const)
   `(or (if (stringp ,const)
@@ -4222,9 +4492,23 @@ forcing function quoting" ,en (car form))))
   (if (cddr form)
       (byte-compile-normal-call
        `(signal 'wrong-number-of-arguments '(function ,(length (cdr form)))))
-    (byte-compile-constant (if (eq 'lambda (car-safe (nth 1 form)))
-                               (byte-compile-lambda (nth 1 form))
-                             (nth 1 form)))))
+    (let ((fn (nth 1 form)))
+      (cond
+       ;; P2-1 cconv: lexbound lambda — the closure is built here,
+       ;; at the creation site, because its env (list of cells from
+       ;; the enclosing frame) is a runtime value.  `byte-compile-lexbind-emit-closure'
+       ;; emits: 1) env-building code (reads frame cells), 2) make-byte-code call
+       ;; with the env as 7th arg.  The lambda body is compiled inline.
+       ((and (eq 'lambda (car-safe fn))
+             (byte-compile-lexbind-p))
+        (byte-compile-lexbind-emit-closure fn))
+       ;; Plain case: lambda as constant, or a symbol/function reference.
+       (t
+        (byte-compile-constant
+         (if (eq 'lambda (car-safe fn))
+             (byte-compile-lambda fn)
+           fn)))))))
+
 
 (defun byte-compile-insert (form)
   (cond ((null (cdr form))
@@ -4274,17 +4558,10 @@ forcing function quoting" ,en (car form))))
 
 (byte-defop-compiler-1 quote)
 (byte-defop-compiler-1 quote-form)
-;; P2-1 (cconv): byte-compile-lexref/lexset handle the lexref/lexset
-;; opcodes with their one-byte immediate cell-index operand.  These
-;; entries register the compiler handlers so that when cconv emits
-;; byte-lexref N / byte-lexset N, they go through the lapcode path
-;; as usual.  (byte-defop only fills the opcode table at load time;
-;; without a byte-defop-compiler-1 entry the symbol remains
-;; unbound, so a byte-compile-out 'byte-lexref at the site where it
-;; is needed in byte-compile-form would call the undefined compiler
-;; handler.)
-(byte-defop-compiler-1 lexref)
-(byte-defop-compiler-1 lexset)
+;; P2-1 (cconv): lexref/lexset are emitted directly by
+;; `byte-compile-variable-ref' via `byte-compile-out'; no inline
+;; compiler form needed.  The opcode entries exist at 184/185 in
+;; the defop table so byte-optimize.el's decompiler can decode them.
 
 (defun byte-compile-setq (form)
   (let ((args (cdr form)) var val)
@@ -4680,6 +4957,10 @@ forcing function quoting" ,en (car form))))
   (byte-compile-out 'byte-call (length (cdr (cdr form)))))
 
 (defun byte-compile-let (form)
+  ;; P2-1 cconv: in lexical mode, push a frame for the let-bound
+  ;; variables so inner lambdas can capture them.
+  (when (byte-compile-lexbind-p)
+    (byte-compile-lexbind-push-frame (byte-compile-lexbind-letvars (car (cdr form)))))
   ;; First compute the binding values in the old scope.
   (let ((varlist (car (cdr form))))
     (while varlist
@@ -4710,12 +4991,20 @@ forcing function quoting" ,en (car form))))
     (if (memq 'unused-vars byte-compile-warnings)
 	;; done compiling in this scope, warn now.
 	(byte-compile-warn-about-unused-variables))
-    (byte-compile-out 'byte-unbind (length (car (cdr form))))))
+    (byte-compile-out 'byte-unbind (length (car (cdr form))))
+    (when (byte-compile-lexbind-p)
+      (byte-compile-lexbind-pop-frame))))
 
 (defun byte-compile-let* (form)
   (let ((byte-compile-bound-variables
 	 (cons 'new-scope byte-compile-bound-variables))
 	(varlist (copy-sequence (car (cdr form)))))
+    ;; P2-1 cconv: in lexical mode, push a frame for ALL let*-bound
+    ;; variables at once (they all exist in scope simultaneously for
+    ;; the purposes of closure creation).
+    (when (byte-compile-lexbind-p)
+      (byte-compile-lexbind-push-frame
+        (byte-compile-lexbind-letvars (car (cdr form)))))
     (while varlist
       (if (atom (car varlist))
 	  (byte-compile-push-constant nil)
@@ -4727,7 +5016,9 @@ forcing function quoting" ,en (car form))))
     (if (memq 'unused-vars byte-compile-warnings)
 	;; done compiling in this scope, warn now.
 	(byte-compile-warn-about-unused-variables))
-    (byte-compile-out 'byte-unbind (length (car (cdr form))))))
+    (byte-compile-out 'byte-unbind (length (car (cdr form))))
+    (when (byte-compile-lexbind-p)
+      (byte-compile-lexbind-pop-frame))))
 
 ;; We've renamed the integerp bytecode to fixnump, and changed its semantics
 ;; accordingly.  This means #'integerp itself can't be as fast as it used to

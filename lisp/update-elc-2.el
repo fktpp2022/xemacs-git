@@ -65,22 +65,9 @@
 
 (defvar dirfiles-table (make-hash-table :test 'equal))
 
-(defun update-elc-2-lexbound-file-p (file)
-  "Return non-nil if FILE declares `lexical-binding: t'.
-Such files are refused by bytecomp.el until closure conversion
-lands (P2); update-elc-2 must skip them rather than die on the
-refusal.  Detected with the same header scan bytecomp.el uses, so
-no list needs maintaining here."
-  (with-temp-buffer
-    ;; The cookie must be in the first-line -*- ... -*- block (same
-    ;; rule bytecomp.el's refusal applies); scanning more would
-    ;; false-positive on files that merely mention the cookie in
-    ;; comments or docstrings.
-    (insert-file-contents file nil 0 512 t)
-    (goto-char (point-min))
-    (re-search-forward "lexical-binding[ \\t]*:[ \\t]*t\\b"
-		       (line-end-position) t)))
-
+(;; P2: closure conversion now handles `lexical-binding: t' files, so
+;; lexbound .el files are byte-compiled normally.  The old skip helper
+;; is removed. )
 ;; SEEN accumulates the list of already-handled dirs.
 (defun do-update-elc-2 (dir compile-stage-p seen)
   (setq dir (file-name-as-directory dir))
@@ -98,14 +85,8 @@ no list needs maintaining here."
 	    (when (string-match-p "\\.el$" file)
 	      (let ((file-c (concat file "c")))
 		(when (and (not (member file-c files))
-			       ;; Lexical-binding core (P1): a file carrying a
-			       ;; `lexical-binding: t' cookie is refused by
-			       ;; bytecomp.el (no closure conversion until P2);
-			       ;; skip it here instead of dying on the
-			       ;; refusal, and let it keep loading interpreted
-			       ;; from source via the load-lexical-files
-			       ;; whitelist.
-			       (not (update-elc-2-lexbound-file-p file))
+			       ;; P2: lexbound .el files are now byte-compiled
+			       ;; normally (closure conversion); no more skip.
 			       ;; no need to check for out-of-date-ness because
 			       ;; that was already done, and .elc removed.
 			       (let (ignore)
