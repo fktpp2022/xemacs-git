@@ -1152,7 +1152,7 @@ otherwise pop it")
 (byte-defop 184  1 byte-lexref  "for lexical variable reference")
 (byte-defop 185 -1 byte-lexset  "for lexical variable assignment")
 
-;; unused: 184-191
+;; unused: 186-191
 
 (byte-defop 192  1 byte-constant	"for reference to a constant")
 ;; codes 193-255 are consumed by byte-constant.
