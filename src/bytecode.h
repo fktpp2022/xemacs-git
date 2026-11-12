@@ -115,7 +115,8 @@ Lisp_Object execute_optimized_program (const Opbyte *program,
 				       Elemcount program_length,
 #endif
 				       int stack_depth,
-				       Lisp_Object *constants_data);
+				       Lisp_Object *constants_data,
+				       Lisp_Object environment);
 
 DECLARE_LISP_OBJECT (compiled_function, Lisp_Compiled_Function);
 #define XCOMPILED_FUNCTION(x) XRECORD (x, compiled_function, \

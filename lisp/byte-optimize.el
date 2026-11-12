@@ -1454,6 +1454,12 @@ function which does assess these subforms."
 	 ;; chars appearing where ints are expected.  In bytecode
 	 ;; the bytes in the opcode string are always interpreted as
 	 ;; ints.
+	 (char-to-int (aref bytes ptr)))
+	;; P2-3 (#159): lexref/lexset take a one-byte operand (the
+	;; captured-cell index into the compiled function's environment);
+	;; not a constants reference, so don't decompile it as one.
+	((or (= op byte-lexref) (= op byte-lexset))
+	 (setq ptr (1+ ptr))		;offset in next byte
 	 (char-to-int (aref bytes ptr)))))
 
 

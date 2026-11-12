@@ -850,7 +850,8 @@ execute_optimized_program (const Opbyte *program,
 			   Elemcount program_length,
 #endif
 			   int stack_depth,
-			   Lisp_Object *constants_data)
+			   Lisp_Object *constants_data,
+			   Lisp_Object environment)
 {
   /* This function can GC */
   REGISTER const Opbyte *program_ptr = (Opbyte *) program;
@@ -921,7 +922,11 @@ execute_optimized_program (const Opbyte *program,
       meter_code (prev_opcode, this_opcode);
 #endif
 
-      switch (opcode)
+	/* The compiled function's lexical environment (P2-2 env slot); Qnil
+	   for dynamically-bound byte code. */
+	REGISTER Lisp_Object env = environment;
+
+	switch (opcode)
 	{
 	  REGISTER int n;
 
@@ -980,6 +985,37 @@ execute_optimized_program (const Opbyte *program,
 	    
 	  break;
 	}
+
+	case Blexref:					/* P2-3 (#159) */
+	  {
+	    n = READ_UINT_1;
+	    if (!VECTORP (env) || n >= XVECTOR_LENGTH (env))
+	      invalid_byte_code ("Blexref outside the function environment",
+				 make_fixnum (n));
+	    {
+	      Lisp_Object cell = XVECTOR_DATA (env)[n];
+	      if (!CONSP (cell))
+		invalid_byte_code ("Blexref cell is not a cons", cell);
+	      PUSH (XCAR (cell));
+	    }
+	    break;
+	  }
+
+	case Blexset:					/* P2-3 (#159) */
+	  {
+	    Lisp_Object value = POP;
+	    n = READ_UINT_1;
+	    if (!VECTORP (env) || n >= XVECTOR_LENGTH (env))
+	      invalid_byte_code ("Blexset outside the function environment",
+				 make_fixnum (n));
+	    {
+	      Lisp_Object cell = XVECTOR_DATA (env)[n];
+	      if (!CONSP (cell))
+		invalid_byte_code ("Blexset cell is not a cons", cell);
+	      XCAR (cell) = value;
+	    }
+	    break;
+	  }
 
 	case Bvarbind:
 	case Bvarbind+1:
@@ -1926,7 +1962,10 @@ static void
 check_opcode (Opcode opcode)
 {
   if ((opcode < Bvarref) ||
-      (opcode > Bassq && opcode < Bconstant))
+      /* P2-3 (#159): lexref/lexset live in the gap between Bassq and
+         Bconstant; everything else in the gap is still invalid. */
+      ((opcode > Bassq && opcode < Bconstant) &&
+       opcode != Blexref && opcode != Blexset))
     invalid_byte_code ("invalid opcode in instruction stream",
 		       make_fixnum (opcode));
 }
@@ -2189,6 +2228,12 @@ optimize_byte_code (/* in */
 	case BlistN:
 	case BconcatN:
 	case BinsertN:
+	  READ_OPERAND_1;
+	  WRITE_INT8 (arg, program_ptr);
+	  break;
+
+	case Blexref:					/* P2-3 (#159) */
+	case Blexset: /* one uint8 operand: environment cell index */
 	  READ_OPERAND_1;
 	  WRITE_INT8 (arg, program_ptr);
 	  break;
@@ -3061,7 +3106,8 @@ If STACK-DEPTH is incorrect, Emacs may crash.
 				    program_length,
 #endif
 				    XFIXNUM (stack_depth),
-				    XVECTOR_DATA (constants));
+				    XVECTOR_DATA (constants),
+				    Qnil);
 }
 
 

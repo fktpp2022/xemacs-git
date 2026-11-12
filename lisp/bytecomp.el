@@ -1142,6 +1142,16 @@ otherwise pop it")
 (byte-defop 182 -1 byte-member)
 (byte-defop 183 -1 byte-assq)
 
+;; P2-3 (#159): lexical reference/set through the compiled function's
+;; environment slot.  Each takes a one-byte operand (the captured cell
+;; index); the C-side dispatch and optimize_byte_code cases live in
+;; bytecode.c, the decompiler operand size in byte-optimize.el.  The
+;; emission side (byte-compile-lexref etc.) arrives with the cconv
+;; rewrite (#157); these entries exist so the decompiler/disassembler
+;; can decode hand-emitted streams.
+(byte-defop 184  1 byte-lexref  "for lexical variable reference")
+(byte-defop 185 -1 byte-lexset  "for lexical variable assignment")
+
 ;; unused: 184-191
 
 (byte-defop 192  1 byte-constant	"for reference to a constant")

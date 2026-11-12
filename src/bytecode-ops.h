@@ -186,6 +186,14 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
   OPCODE (member, 			0266) /* new in v20 */
   OPCODE (assq, 			0267) /* new in v20 */
 
+  /* P2-3 (#159): lexical reference/set through the compiled function's
+     environment slot.  Each takes one uint8 operand: the index of the
+     captured cell in the environment.  See the `lexref'/`lexset'
+     dispatch cases in bytecode.c and `disassemble-offset' in
+     byte-optimize.el, which must stay in sync. */
+  OPCODE (lexref, 			0270) /* P2-3 (#159) */
+  OPCODE (lexset, 			0271) /* P2-3 (#159) */
+
   OPCODE (constant,			0300)
 
 #undef OPCODE

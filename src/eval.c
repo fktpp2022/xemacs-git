@@ -3893,7 +3893,10 @@ funcall_compiled_function (Lisp_Object fun, int nargs, Lisp_Object args[])
 				 sizeof (Opbyte),
 #endif
 				 f->stack_depth,
-				 XVECTOR_DATA (f->constants));
+				 XVECTOR_DATA (f->constants),
+				 /* P2-3 (#159): the lexical environment the
+				    Blexref/Blexset opcodes read and write. */
+				 f->environment);
 
     /* The attempt to optimize this by only unbinding variables failed
        because using buffer-local variables as function parameters
