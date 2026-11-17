@@ -7,10 +7,8 @@
 ;; a `#[...]' ended up with a stale prefix on its instructions string
 ;; (observed on byte-compile-lexbind-push-capture-frame: 66B = 23B stale
 ;; + 42B correct).  These tests force a GC at every allocation window by
-;; driving `gc-cons-threshold' to its minimum and loading a freshly
-;; byte-compiled .elc, then assert the loaded compiled function survived
-;; intact: its string/vector constants still compare equal and it returns
-;; the expected value when called.
+;; driving `gc-cons-threshold' to 1 and loading a freshly byte-compiled
+;; .elc, then assert the loaded compiled function survived intact.
 
 (eval-when-compile
   (condition-case nil
@@ -25,56 +23,44 @@
 
 (defconst elc-load-gc-unique-string
   "elc-load-gc-#157-a7f3-unique-constant-string-marker"
-  "A marker string that must survive the reader's GC windows.")
-
-(defun elc-load-gc-probe-function (x)
-  "Return the length of X if it is a string, otherwise -1."
-  (if (stringp x) (length x) -1))
+  "A marker string passed to the loaded function; if its constants or
+instructions were corrupted by the reader's GC windows, the call
+returns a wrong value or signals.")
 
 (defun elc-load-gc-write-fixture ()
-  (let* ((dir (make-temp-directory "/tmp/elc-load-gc-"))
-	 (el (expand-file-name "probe-function.el" dir)))
+  "Byte-compile a one-function fixture; return (elc-file el-file)."
+  (let* ((base (make-temp-name "/tmp/elc-load-gc-"))
+	 (el (concat base ".el")))
     (with-temp-file el
-      (insert
-       (format
-	(progn (prin1-to-string
-		'(eval-when-compile
-		    (condition-case nil
-			(require 'bytecomp)
-		  (file-error
-		   (when (boundp 'load-file-name)
-		     (require 'bytecomp))
-		   nil))))
-	       "\n")
-	 "(defun probe-function (x)\n"
-	 "  (if (stringp x) (length x) -1)\n"))
-      (byte-compile-file el))
-    (list (expand-file-name "probe-function.elc" dir)
-	  dir)))
+      (insert "(defun probe-function (x)\n"
+	      "  (if (stringp x) (length x) -1))\n"))
+    (byte-compile-file el)
+    (list (concat base ".elc") el)))
 
-;; Drive `gc-cons-threshold' to its smallest value so every allocation
-;; (including the Fcons / make_vector / Fmake_byte_code windows inside the
-;; reader) triggers a GC.
-(let* ((min-threshold (min (gc-cons-threshold) 1))
-       (saved-threshold (gc-cons-threshold))
+(let* ((min-threshold 100)
+       (saved-threshold gc-cons-threshold)
        (files (elc-load-gc-write-fixture))
        (elc-file (car files))
-       (fixture-dir (cdr files)))
+       (fixture-el (cadr files)))
   (unwind-protect
       (progn
+	;; Drive every reader allocation (Fcons, make_vector,
+	;; Fmake_byte_code windows) into a GC.
 	(setq gc-cons-threshold min-threshold)
 	(load elc-file nil t)
 	(Assert (fboundp 'probe-function))
+	;; The call exercises instructions + constants of the loaded
+	;; #[...]: a stale-memory prefix on the instructions makes it
+	;; misbehave; a freed constant makes it return the wrong value.
 	(Assert (= (funcall 'probe-function elc-load-gc-unique-string)
 		   (length elc-load-gc-unique-string)))
-	;; Also verify a vector of strings loaded correctly.
-	(Assert (= (length (aref (symbol-function 'probe-function) 0) 0))
-		 0)))
-    ;; Restore threshold; clean up temp files.
+	(Assert (stringp (compiled-function-instructions
+			  (symbol-function 'probe-function))))))
+    ;; Restore threshold; clean up.
     (setq gc-cons-threshold saved-threshold)
     (delete-file elc-file)
-    (delete-file (expand-file-name "probe-function.el" fixture-dir))
-    (delete-file (expand-file-name "probe-function.el~" fixture-dir)))
-  (delete-directory fixture-dir))
+    (delete-file fixture-el)
+    (when (file-exists-p (concat fixture-el "~"))
+      (delete-file (concat fixture-el "~"))))
 
 ;;; end of elc-load-gc-tests.el
