@@ -36,3 +36,4 @@ config-h-*.h
 config-log-*.txt
 docs/reference/
 **/auto-autoloads.el
+build_debug/

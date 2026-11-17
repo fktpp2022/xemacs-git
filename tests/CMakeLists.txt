@@ -26,6 +26,7 @@ foreach(test_file ${TEST_FILES})
   set_tests_properties("${test_name}" PROPERTIES
     TIMEOUT 120
     FIXTURES_REQUIRED xemacs_build
+    FAIL_REGULAR_EXPRESSION "FAIL:|aborted"
   )
 endforeach()
 
@@ -41,16 +42,9 @@ set_tests_properties(elpa-live-tests PROPERTIES
   SKIP_RETURN_CODE 125)
 
 # test-harness records assertion failures and aborted files in its output
-# but batch-test-emacs currently exits 0 for both.  These are the gates for
-# the compatibility layer, the ELPA clients, and the key parser, so make
-# ctest fail on the harness's own failure markers rather than trusting the
-# exit status alone.
-set_tests_properties(cl-lib-tests subr-compat-tests keymap-tests
-  elpa-tests elpa-m2-tests elpa-m2-negative-tests elpa-live-tests
-  subr-x-compat-tests use-package-tests use-package-report-tests
-  font-tests cnfonts-xemacs-tests
-  PROPERTIES
-  FAIL_REGULAR_EXPRESSION "FAIL:|aborted")
+# but batch-test-emacs currently exits 0 for both; every globbed harness
+# test above carries FAIL_REGULAR_EXPRESSION "FAIL:|aborted" so ctest fails
+# on the harness's own failure markers rather than trusting exit status.
 add_test(NAME xemacs_build_fixture
   COMMAND ${CMAKE_COMMAND} --build "${CMAKE_BINARY_DIR}" --target build-all)
 set_tests_properties(xemacs_build_fixture PROPERTIES
