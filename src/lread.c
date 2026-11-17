@@ -3081,7 +3081,7 @@ read_list_conser (Lisp_Object readcharfun, void *state, Charcount UNUSED (len))
 {
   struct read_list_state *s = (struct read_list_state *) state;
   Lisp_Object elt;
-
+  NGCDECL1;
   elt = read1 (readcharfun);
 
   if (CONSP (elt) && UNBOUNDP (XCAR (elt)))
@@ -3130,12 +3130,14 @@ read_list_conser (Lisp_Object readcharfun, void *state, Charcount UNUSED (len))
 	}
     }
 
+  NGCPRO1 (elt);
   elt = Fcons (elt, Qnil);
   if (!NILP (s->tail))
     XCDR (s->tail) = elt;
   else
     s->head = elt;
   s->tail = elt;
+  NUNGCPRO;
  done:
   s->length++;
   return s;
@@ -3240,10 +3242,13 @@ read_vector (Lisp_Object readcharfun,
 
   sequence_reader (readcharfun, terminator, &s, read_list_conser);
 
-  UNGCPRO;
   tem = s.head;
   len = XFIXNUM (Flength (tem));
 
+  /* Do NOT UNGCPRO here: s.head still roots the element list, and
+     make_vector() is the one call in this window that can GC.  Dropping
+     the GCPRO first let the sweep free the elements before we copy them
+     into the vector (use-after-free in compiled-function constants).  */
   s.head = make_vector (len, Qnil);
 
   for (i = 0, p = &(XVECTOR_DATA (s.head)[0]);
@@ -3256,6 +3261,8 @@ read_vector (Lisp_Object readcharfun,
     tem = XCDR (otem);
     free_cons (otem);
   }
+  s.tail = Qnil;
+  UNGCPRO;
   return s.head;
 }
 
@@ -3266,7 +3273,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
      have to build them at load-time. */
   Lisp_Object stuff;
   Lisp_Object make_byte_code_args[COMPILED_ENVIRONMENT + 1];
-  struct gcpro gcpro1;
+  struct gcpro gcpro1, gcpro2;
   Elemcount iii = 0, len;
   Boolint saw_a_doc_ref = 0;
 
@@ -3320,9 +3327,8 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   }
 
   free_list (stuff);
-
-  GCPRO1 (make_byte_code_args[0]);
-  gcpro1.nvars = iii;
+  stuff = Qnil;
+  GCPRO2_ARRAY (make_byte_code_args, iii, &stuff, 1);
 
   stuff = Fmake_byte_code (iii, make_byte_code_args);
   if (saw_a_doc_ref)
