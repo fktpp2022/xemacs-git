@@ -2156,9 +2156,10 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
 /* In a non-insane world this function would have this arglist...
    (arglist instructions constants stack_depth &optional doc_string interactive env)
  */
+  NGCDECL1;
   Lisp_Object fun = make_compiled_function ();
+  NGCPRO1 (fun);
   Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (fun);
-
   Lisp_Object arglist      = args[0];
   Lisp_Object instructions = args[1];
   Lisp_Object constants    = args[2];
@@ -2240,6 +2241,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
       optimize_compiled_function (fun);
     }
 
+  NUNGCPRO;
   return fun;
 }
 
