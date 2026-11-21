@@ -956,7 +956,23 @@ execute_optimized_program (const Opbyte *program,
 	do_varref:
 	{
 	  Lisp_Object symbol = constants_data[n];
-	  Lisp_Object value = XSYMBOL (symbol)->value;
+	  Lisp_Object value;
+
+	  /* P1-1 parity (#147): a compiled variable reference must consult
+	     the active lexical environment first, like Feval's symbol case,
+	     before falling back to the dynamic fast path. */
+	  if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol))
+	    {
+	      Lisp_Object binding
+		= Fassq (symbol, XCDR (Vinternal_interpreter_environment));
+	      if (CONSP (binding))
+		{
+		  PUSH (XCDR (binding));
+		  break;
+		}
+	    }
+
+	  value = XSYMBOL (symbol)->value;
 	  if (SYMBOL_VALUE_MAGIC_OR_OPAQUEP (value))
 	    value = Fsymbol_value (symbol);
 	  PUSH (value);
@@ -977,11 +993,14 @@ execute_optimized_program (const Opbyte *program,
 	  Lisp_Symbol *symbol_ptr = XSYMBOL (symbol);
 	  Lisp_Object old_value = symbol_ptr->value;
 	  Lisp_Object new_value = POP;
-	  if (!SYMBOL_VALUE_MAGIC_P (old_value))
-	    symbol_ptr->value = new_value;
-	  else {
+
+	  /* P1-1 parity (#147): route through Fset when a lexical environment
+	     is active so env bindings are mutated, not the global value. */
+	  if ((LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol))
+	      || SYMBOL_VALUE_MAGIC_P (old_value))
 	    Fset (symbol, new_value);
-	  }
+	  else
+	    symbol_ptr->value = new_value;
 	    
 	  break;
 	}
