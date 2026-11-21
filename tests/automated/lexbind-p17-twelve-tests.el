@@ -20,6 +20,15 @@
        (push (file-name-directory load-file-name) load-path))
      (require 'test-harness))))
 
+;; The installed xemacs-packages tree ships fsf-compat/cl-lib.elc which
+;; shadows this build's lisp/cl-lib.el in the default load-path order,
+;; so `(load "cl-lib" nil t)' would resolve to the compiled package.
+;; Pin this build's lisp dir first so the whitelisted loads below read
+;; the source files of this build, not an installed package.
+(let ((build-lisp (file-name-directory (locate-library "test-harness"))))
+  (when build-lisp
+    (setq load-path (cons build-lisp (delete build-lisp load-path)))))
+
 ;; 1. The twelve-file whitelist is shipped as the runtime default.
 (Assert (boundp 'lexbound-lisp-files))
 (Assert (equal lexbound-lisp-files

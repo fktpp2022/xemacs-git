@@ -23,3 +23,7 @@ Driving a GUI XEmacs from a script -- a `-l` probe, or a gate under `ctest -L gu
 ### Shell
 
 Commands run under zsh here: quote a glob (`'*.elc'`), because one that matches nothing aborts the whole command with `no matches found`.
+
+### Environment Gotcha: load-path shadowing
+
+When running tests that rely on loading specific repo source files (`.el`), be aware that installed packages in the `xemacs-packages` tree (e.g., `fsf-compat/cl-lib.elc`) may shadow local sources. If a test depends on a file being loaded as a lexical closure from source, pin the build `lisp/` directory to the front of `load-path` in the test setup.

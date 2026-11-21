@@ -42,3 +42,7 @@ The reader windows (`read_list_conser`, `read_vector`,
 `read_compiled_function`) were the #157 use-after-free; the regression test
 `tests/automated/elc-load-gc-tests.el` drives `gc-cons-threshold` low to force a
 GC inside each window.
+
+## Bytecode Parity
+
+When adding or modifying VM opcodes that mirror Lisp subrs (e.g., `Bvarset` mirroring `Fset`), the opcode handler must implement the same semantic guards (e.g., `LEXBIND_ENV_ACTIVE_P`) as the subr, or route through the subr when those guards are active. Verify against a mirrored interpreted test to ensure no semantic divergence between interpreted and compiled paths.
