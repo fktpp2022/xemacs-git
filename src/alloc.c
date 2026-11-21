@@ -2158,6 +2158,17 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
  */
   Lisp_Object fun = make_compiled_function ();
   Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (fun);
+  /* P2-1 (#157): FUN is fresh and referenced only from this C frame until
+     the caller can store it, and several paths below can GC (Fcons for
+     doc_and_interactive, Fputhash for the annotation, make_opaque for
+     purified instructions).  Frobblock lrecords are collectable as soon
+     as allocated, so a GC here freed the new compiled function and left
+     the caller holding a freed record (manifested as "invalid opcode in
+     instruction stream" for loaded .elc functions, and as the gc.c
+     free-record assert when a GC was forced right after Fmake_byte_code). */
+  struct gcpro ngcpro1, *ngcp1 = &ngcpro1;
+  Lisp_Object fun_protected = fun;
+  NGCPRO1 (fun_protected);
 
   Lisp_Object arglist      = args[0];
   Lisp_Object instructions = args[1];
@@ -2228,6 +2239,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
 
   f->environment = environment;
 
+/* [DEBUG-gc1] forced GC removed; FUN now protected from allocation (see top). */
   if (!CONSP (doc_string) || purify_flag)
     {
       set_compiled_function_annotation (f, Vload_file_name_internal);
@@ -2240,6 +2252,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
       optimize_compiled_function (fun);
     }
 
+  NUNGCPRO;
   return fun;
 }
 

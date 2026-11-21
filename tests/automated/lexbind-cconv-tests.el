@@ -26,9 +26,11 @@
 (if (not lexbind-cconv-interpreted)
 
     ;; ---- lexical let inside a lexbound defun -----------------------
-    (let* ((f (function (lexical-let-x 10) (lexical-let-x-inner f))))
-      (let ((g (lexical-make-capture 42)))
-        (Assert (eq (funcall g) 42))))
+    (let ((g (lexical-make-capture 42)))
+      (Assert (eq (funcall g) 42)))
+
+    ;; ---- capture read from a let initialiser (regression) -----------
+    (Assert (eq (funcall (lexical-let-init-capture 3 4)) 7))
 
     ;; ---- nested closure capture across two let levels ---------------
     (let ((outer-fn (lexical-nested-capture 7 8)))
@@ -50,6 +52,17 @@
 (defun lexical-make-capture (n)
   (let ((x n))
     (function (lambda () x))))
+
+;; ---- a capture read from a `let' INITIALISER (regression) ---------
+;; `(let ((c s)) c)' evaluates `s' in the ENCLOSING scope.  The
+;; free-variable walk used to skip plain `let' initialisers entirely,
+;; so `s' was never a capture: the closure got no env, `s' compiled to
+;; a dynamic varref, and calling the closure signalled
+;; `void-variable s'.  Minimised repro; keep it separate from the
+;; nested-capture case so a regression names itself.
+(defun lexical-let-init-capture (a b)
+  (let ((s (+ a b)))
+    (function (lambda () (let ((c s)) c)))))
 
 ;; Nested closure: outer-fn returns a closure that captures the sum of
 ;; a and b computed in two separate lets.
@@ -91,8 +104,7 @@
   (function (lambda () q)))
 
 
-;; ---- defvar'd vars remain dynamic -----------------------------------
-;;   A defvar'd variable in a lexbound file is exempt from capture.
+;; ---- defvar'd vars remain dynamic -----------------------------------;;   A defvar'd variable in a lexbound file is exempt from capture.
 ;;   References to it should be plain byte-varref/byte-varset.
 (if (not lexbind-cconv-interpreted)
     (let ((dv (lexical-defvar-ref)))
