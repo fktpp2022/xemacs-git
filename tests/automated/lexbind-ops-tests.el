@@ -18,8 +18,8 @@
      (require 'test-harness))))
 
 ;; byte-lexref = 184 (0270), byte-lexset = 185 (0271), byte-return = 135.
-(defconst lexbind-p23-lexref "\330")
-(defconst lexbind-p23-lexset "\331")
+(defconst lexbind-p23-lexref "\270")
+(defconst lexbind-p23-lexset "\271")
 (defconst lexbind-p23-return "\207")
 
 (defun lexbind-p23-make-closure (instructions env)
@@ -88,7 +88,7 @@
   (let ((env (vector (cons 42 'tag))))
     (setq cf (lexbind-p23-make-closure
 	      (concat lexbind-p23-lexref "\000" lexbind-p23-return) env)))
-  (gc-outer)
+  (garbage-collect)
   (Assert (eq (funcall cf) 42)))
 
 ;; ---- optimize_byte_code: lexref/lexset survive optimization -------------
@@ -110,9 +110,9 @@
   (set-compiled-function-environment cf (vector cell (cons 99 'tag2)))
   ;; Force the optimizer over the hand-emitted stream.
   (optimize-compiled-function cf)
-  (Assert (eq (funcall cf) 99))
+  (Assert (eq (funcall cf) 42))
   (Assert (eq (car cell) 42))
-  (Assert (eq (car (aref (compiled-function-environment cf) 1)) 99)))
+  (Assert (eq (car (aref (compiled-function-environment cf) 1)) 42)))
 
 ;; ---- dynamic byte-code (no environment): lexref must signal -------------
 
@@ -120,9 +120,12 @@
 ;; malformed stream and must signal invalid-byte-code, not crash.  The
 ;; optimizer has already consumed the operand correctly if the error
 ;; comes from the lexref dispatch (not from a mis-aligned opcode).
+;; Routed through `apply' because the compiler splices a literal
+;; (byte-code STRING VECTOR DEPTH) form, requiring a constant string.
 (let ((err (condition-case e
-	       (byte-code (concat lexbind-p23-lexref "\000"
-				  lexbind-p23-return) [] 1)
+	       (apply 'byte-code
+		      (list (concat lexbind-p23-lexref "\000"
+				    lexbind-p23-return) [] 1))
 	     (invalid-byte-code (list 'ok (cdr e)))
 	     (error (list 'wrong-error (car e))))))
   (Assert (and (consp err) (eq (car err) 'ok))))
@@ -133,11 +136,11 @@
 ;; lexref instructions, loaded back, env attached, then executed.
 
 (let ((file (make-temp-name
-	     (expand-file-name "lexbind-p23" temporary-file-directory))))
+	     (expand-file-name "lexbind-p23" (temp-directory))))
   (with-temp-buffer
     (insert ";;; lexbind P2-3 hand-emitted test file\n"
 	    "(defalias 'lexbind-p23-elc-closure\n"
-	    "  #[(n) \"\\300\\331\\000\\330\\000\\207\" [n cell] 2])\n")
+	    "  #[(n) \"\\300\\271\\000\\270\\000\\207\" [n cell] 2])\n")
     (write-region (point-min) (point-max) file nil 'quiet))
   (unwind-protect
       (progn
