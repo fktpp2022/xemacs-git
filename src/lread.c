@@ -698,10 +698,12 @@ do {								\
        GNU-style: the loader rebinds the interpreter environment, so
        the mode flag is exempt from the mode it controls.
 
-       XEmacs-only deviation (issue #144 Q2): activation is gated by
-       the `load-lexical-files' whitelist (default nil; see the
-       defvar below).  Sunset: retires when cconv lands in P2, at
-       which point the cookie alone activates.
+       P2 (#163): the cookie alone activates.  During P1 activation was
+       gated on the `load-lexical-files' whitelist because there was no
+       closure conversion and only a hand-picked file set could be
+       interpreted with a lexical environment; `byte-compile-file' now
+       converts lexbound files (P2-1, #157) and the whitelist is retired.
+       The variable still exists as an inert alias for diagnostics.
 
        Deliberately crude byte scan of the first 512 bytes; a real
        version would parse the cookie properly.  .elc loads skip the
@@ -738,13 +740,9 @@ do {								\
 				 || (lexbq[1] >= '0' && lexbq[1] <= '9'))
 			    && lexbq[1] != '_' && lexbq[1] != '-')
 			  {
-			    /* Whitelisting is data: membership (of the
-			       file's base name) is all that changes per
-			       file. */
-			    if (!NILP (Fmember (Ffile_name_nondirectory (found),
-						Vload_lexical_files)))
-			      specbind (Qinternal_interpreter_environment,
-						list1 (Qt));
+			    /* P2 (#163): the cookie alone activates; the whitelist gate
+			       that used to live here is retired. */
+			    specbind (Qinternal_interpreter_environment, list1 (Qt));
 			    lexbp = lexbend;
 			    continue;
 			  }
@@ -779,6 +777,12 @@ do {								\
     else
       load_byte_code_version = 100;
 
+    /* P2 (#163) bumped the writer to 21.  Version 20 stays readable:
+       every pre-built third-party package in the installed
+       xemacs-packages tree carries 20, and their .elc are semantically
+       unaffected by closure conversion (a compiled lexbound file bakes
+       its environments into its own closures).  Rejecting 20 here would
+       brick the package tree for no gain. */
     if (load_byte_code_version < 20)
       {
         signal_error_2 (Qinvalid_byte_code, "Byte code version not supported",
@@ -3519,32 +3523,22 @@ Full name of file being loaded by `load'.
   DEFVAR_LISP ("load-lexical-files", &Vload_lexical_files /*
 List of file base names whose source may activate lexical binding.
 
-When `load' reads a SOURCE file whose first bytes declare the
-`lexical-binding: t' header, the interpreter's lexical environment
-is made active for that file's extent -- but only if the file's base
-name (as returned by `file-name-nondirectory', extension included)
-is a member of this list.  The C-level default is nil: in a process
-that never ran loadup (undumped temacs, bare batch runs), no file
-activates lexical binding and loading behavior is exactly that of a
-build without this feature.  The dumped build ships the full
-lexical-binding P1 whitelist (the twelve lexbound files) as the
-runtime default, installed by loadup.el past the dump-time preload
-extent (P1-7).  Byte-compiled (.elc) files never trigger the scan or
-the activation, regardless of this variable.
+Inert since P2 (#163).  While closure conversion was still missing
+this was a whitelist: only a SOURCE file whose base name (as returned
+by `file-name-nondirectory', extension included) appeared here had its
+`lexical-binding: t' header honoured.  `byte-compile-file' now
+converts lexbound files (P2-1, #157), so the header alone activates
+lexical binding, exactly as in GNU Emacs, and the value of this
+variable has no effect.  It survives one release as a no-op alias for
+diagnostics and retires after that.
 
-This option is a documented XEmacs-only deviation from GNU Emacs:
-GNU activates lexical binding from the cookie alone.  The whitelist
-exists because this build's interpreted-only closures are opt-in
-during the lexical-binding P1 phase.  Sunset: this variable retires
-when cconv lands (P2) -- the cookie alone will activate, GNU
-behavior -- after a release as a no-op alias for diagnostics.
+Byte-compiled (.elc) files never trigger the header scan or the
+activation; their lexical environments are baked into the compiled
+closures.
 */ );
   Vload_lexical_files = Qnil;
-  /* Lexical-binding P1-7 (#153): an ordinary dump root, not a
-     dump-nil root -- loadup.el installs the shipped twelve-file
-     whitelist past the dump-time preload extent, and the dumped
-     image must keep it as the runtime default.  The C-level default
-     (an undumped process, loadup never runs) stays nil. */
+  /* P2 (#163): inert alias, kept as an ordinary dump root so its
+     value survives the dump while the variable is still in the API. */
   staticpro (&Vload_lexical_files);
 
   DEFVAR_LISP ("load-read-function", &Vload_read_function /*

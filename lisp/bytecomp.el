@@ -10,7 +10,7 @@
 ;;	Richard Stallman <rms@gnu.org>
 ;; Keywords: internal lisp
 
-(defconst byte-compile-version "2.28 XEmacs; 2009-08-09.")
+(defconst byte-compile-version "2.29 XEmacs (P2 closure conversion); 2026-11-22.")
 
 ;; This file is part of XEmacs.
 
@@ -2276,7 +2276,7 @@ docstrings code.")
     ;;
     (insert
      ";ELC"
-     20
+     21
      "\000\000\000\n")
     (insert (format ";;;###coding system: %s\n"
                     (coding-system-name buffer-file-coding-system)))
