@@ -786,6 +786,18 @@ do {								\
                         found);
       }
 
+    /* Give this load its own atom-name buffer.  read_atom_0 accumulates
+       atom names in the single global Vread_buffer_stream, and a load can
+       be started from inside a read: decoding a wide character whose
+       Unicode mapping is not loaded yet calls
+       compiled_unicode_table_load() (unicode.c), which loads
+       compiled-unicode-tables.elc.  That nested load would otherwise
+       rewind and refill the buffer under the atom the interrupted read
+       was accumulating, interning a name made of the nested file's
+       leftovers (#164 interned "compiled-unicode-tables\0p").  Unwound by
+       the unbind_to below. */
+    internal_bind_lisp_object (&Vread_buffer_stream,
+			       make_resizing_buffer_output_stream ());
     readevalloop (lispstream, file, Feval, 0);
     if (!NILP (used_codesys))
       Fset (used_codesys,
