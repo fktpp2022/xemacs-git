@@ -2229,6 +2229,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
 
   f->environment = environment;
 
+/* [DEBUG-gc1] forced GC removed; FUN now protected from allocation (see top). */
   if (!CONSP (doc_string) || purify_flag)
     {
       set_compiled_function_annotation (f, Vload_file_name_internal);
