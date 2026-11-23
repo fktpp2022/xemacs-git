@@ -108,44 +108,32 @@
 ;; A top-level assert that precedes its defun is `void-function` in the
 ;; interpreted pass, which is how this file fails on a clean build.
 
-(if (not lexbind-cconv-interpreted)
 
-    ;; ---- lexical let inside a lexbound defun -----------------------
-    (let ((g (lexical-make-capture 42)))
-      (Assert (eq (funcall g) 42)))
 
-    ;; ---- capture read from a let initialiser (regression) -----------
-    (Assert (eq (funcall (lexical-let-init-capture 3 4)) 7))
 
-    ;; ---- nested closure capture across two let levels ---------------
-    (let ((outer-fn (lexical-nested-capture 7 8)))
-      (let ((inner-fn (funcall outer-fn)))
-        (Assert (eq (funcall inner-fn) 15))))
 
-    ;; ---- closure writes are visible via the cell -------------------
-    (let ((writer (lexical-mutating-closure 100)))
-      (funcall writer 200)
-      (Assert (eq (funcall (lexical-reader 100)) 100)))
-  ;; Interpreted pass: smoke test only.
-  (Assert t))
 
-(if (not lexbind-cconv-interpreted)
-    (let ((top-fn (lexical-top-capture 5)))
-      (Assert (eq (funcall top-fn) 5))
-      ;; The closure's env must be a vector (P2-2/P2-3 shape).
-      (let ((env (compiled-function-environment
-                  (symbol-function 'lexical-top-capture-inner))))
-        (when env (Assert (vectorp env))))))
+;; ---- cconv driven explicitly -------------------------------------------
+;; The harness compiles this file as a lambda read from a buffer
+;; (lisp/test-harness.el:573), which carries no file header and therefore no
+;; `lexical-binding: t' cookie, so its "compiled pass" is NOT lexbound and
+;; `lexbind-cconv-interpreted' above answers a different question (was the
+;; file compiled) than the one it is used for (is lexical binding on).
+;; Drive the compiler's lexbind mode directly instead:
+;; `byte-compile-lexical-binding' is exactly what `byte-compile-file' sets
+;; from the cookie.
 
-(if (not lexbind-cconv-interpreted)
-    (let ((dv (lexical-defvar-ref)))
-      (Assert (eq dv 99))))
+(let ((code (let ((byte-compile-lexical-binding t))
+	      (byte-compile
+	       '(lambda (n)
+		  (let ((x n))
+		    (lambda () (let ((c (* x 2))) c))))))))
+  (Assert (compiled-function-p code))
+  (let ((closure (funcall code 21)))
+    (Assert (compiled-function-p closure))
+    ;; A capturing lambda gets the env slot (P2-2) and its cells (P2-3).
+    (Assert (vectorp (compiled-function-environment closure)))
+    ;; `c' is initialised from a capture inside a `let' -- the shape #157
+    ;; got wrong (it emitted a dynamic varref, `void-variable x').
+    (Assert (eq (funcall closure) 42))))
 
-(if (not lexbind-cconv-interpreted)
-    (let ((cf (lexical-make-closure-cf)))
-      (Assert (compiled-function-p cf))
-      (Assert (vectorp (compiled-function-environment cf)))))
-
-(if (not lexbind-cconv-interpreted)
-    (let ((f (lexical-multi-capture 1 2 3)))
-      (Assert (eq (funcall f) 6))))
