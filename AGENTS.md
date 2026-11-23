@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues live as GitHub issues in `fktpp2022/xemacs-git`, managed with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+Issues live as GitHub issues in `fktpp2022/xemacs-git`, managed with the `gh` CLI. Before closing one, run `scripts/verify-merged.sh ISSUE BRANCH` -- a closed ticket is not evidence its work merged. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -24,6 +24,6 @@ Driving a GUI XEmacs from a script -- a `-l` probe, or a gate under `ctest -L gu
 
 Commands run under zsh here: quote a glob (`'*.elc'`), because one that matches nothing aborts the whole command with `no matches found`.
 
-### Environment Gotcha: load-path shadowing
+### Which XEmacs is actually running
 
-When running tests that rely on loading specific repo source files (`.el`), be aware that installed packages in the `xemacs-packages` tree (e.g., `fsf-compat/cl-lib.elc`) may shadow local sources. If a test depends on a file being loaded as a lexical closure from source, pin the build `lisp/` directory to the front of `load-path` in the test setup.
+Before trusting a measurement: `-l bytecomp` may load the source or the dumped compiler, stale `.elc` survive a branch switch, and installed packages shadow local sources. See `docs/agents/xemacs-internals-probes.md`.

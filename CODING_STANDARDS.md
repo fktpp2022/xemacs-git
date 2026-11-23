@@ -46,3 +46,26 @@ GC inside each window.
 ## Bytecode Parity
 
 When adding or modifying VM opcodes that mirror Lisp subrs (e.g., `Bvarset` mirroring `Fset`), the opcode handler must implement the same semantic guards (e.g., `LEXBIND_ENV_ACTIVE_P`) as the subr, or route through the subr when those guards are active. Verify against a mirrored interpreted test to ensure no semantic divergence between interpreted and compiled paths.
+
+## A stated cause names its evidence
+
+A commit message, issue comment, or PR body that asserts *why* something broke
+must name the command whose output showed it, or label the claim a hypothesis.
+"Deadlock: the compiler that is still in the previously dumped image still
+carries the refusal" is a hypothesis until a run is shown; the same map carried
+about it only cost a superseding comment. The test: could a reader re-run
+something and get the same verdict? If not, it is a theory — say so.
+
+## A test passes from a cold start
+
+A test must pass in a fresh process with nothing left over from a prior run. A
+test that only passes when an earlier load defined its helpers, or when a stale
+`.elc` from another branch is still on `load-path`, is asserting on the harness
+or the build directory, not on the code. Symptoms: `void-function` on a name the
+file clearly defines; a suite that goes green on the second run.
+
+Consequence for harness-based tests: the harness compiles and evaluates the file
+it was given (`lisp/test-harness.el`), so it does not consult a
+`lexical-binding: t` file header. A test that needs lexical binding must turn it
+on itself (`byte-compile-lexical-binding`) rather than assume the harness pass
+supplies it.
