@@ -837,6 +837,30 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 /* See comment before the big switch in execute_optimized_program(). */
 #define ADJUST_STACK_GCPRO  (gcpro1.nvars = stack_ptr - stack_beg)
 
+/* Lexbind env parity (#147) has Bvarref/Bvarset consult the active lexical
+   environment before the dynamic value.  When a dynamic `let' (Bvarbind /
+   arg specbind) is inner to the env frame the dynamic binding is the
+   innermost one and must win, or a dynamic callee reading its own local
+   aliased with a same-named lexical binding of its caller: set-keymap-parent
+   then saw one keymap for both its arguments ("Cyclic keymap indirection",
+   cnfonts-command-matrix-gui gate).  Env frames are themselves specbound on
+   internal-interpreter-environment, so scanning the specpdl from the top
+   decides it: symbol first => dynamic wins; env frame first => env wins. */
+static Boolint
+lexbind_dynamic_shadows_env_p (Lisp_Object symbol)
+{
+  struct specbinding *entry = specpdl_ptr;
+  Boolint saw_symbol = 0;
+  while (entry > specpdl)
+    {
+      entry--;
+      if (EQ (entry->symbol, Qinternal_interpreter_environment))
+	return saw_symbol;
+      if (!saw_symbol && EQ (entry->symbol, symbol))
+	saw_symbol = 1;
+    }
+  return saw_symbol;
+}
 
 /* The actual interpreter for byte code.
    This function has been seriously optimized for performance.
@@ -960,8 +984,11 @@ execute_optimized_program (const Opbyte *program,
 
 	  /* P1-1 parity (#147): a compiled variable reference must consult
 	     the active lexical environment first, like Feval's symbol case,
-	     before falling back to the dynamic fast path. */
-	  if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol))
+	     before falling back to the dynamic fast path.  Precedence:
+	     the innermost dynamic binding (on the specpdl) wins over the
+	     caller's ambient env. */
+	  if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol)
+	      && !lexbind_dynamic_shadows_env_p (symbol))
 	    {
 	      Lisp_Object binding
 		= Fassq (symbol, XCDR (Vinternal_interpreter_environment));
@@ -995,8 +1022,11 @@ execute_optimized_program (const Opbyte *program,
 	  Lisp_Object new_value = POP;
 
 	  /* P1-1 parity (#147): route through Fset when a lexical environment
-	     is active so env bindings are mutated, not the global value. */
-	  if ((LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol))
+	     is active so env bindings are mutated, not the global value.  Precedence:
+	     the innermost dynamic binding (on the specpdl) wins over the
+	     caller's ambient env. */
+	  if ((LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol)
+	       && !lexbind_dynamic_shadows_env_p (symbol))
 	      || SYMBOL_VALUE_MAGIC_P (old_value))
 	    Fset (symbol, new_value);
 	  else

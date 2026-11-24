@@ -44,4 +44,14 @@
 ;; Dynamic symbol unaffected by the env excursion
 (Assert (eq lexbind-env-test-dyn 7))
 
+;; Regression: dynamic compiled functions must not consult ambient lexical env
+;; for colliding local names (Bug: Cyclic keymap indirection).
+(let ((dyn-fn (let ((byte-compile-lexical-binding nil))
+                (byte-compile '(lambda (x)
+                                 (let ((map (list 'inner)))
+                                   (list map x)))))))
+  (let ((map (list 'outer)))
+    (Assert (equal (car (funcall dyn-fn 42)) '(inner)))
+    (Assert (equal map '(outer)))))
+
 ;;; end of lexbind-env-tests.el
