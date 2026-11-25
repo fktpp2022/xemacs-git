@@ -167,16 +167,16 @@ Work items:
 
 ### P2 gate checklist
 
-- [ ] P1 gates all stayed green through P2 development (proven bug class only; **repeated
+- [x] P1 gates all stayed green through P2 development (proven bug class only; **repeated
       out-of-class bootstrap failure → trip-wire (i)**).
-- [ ] Clean-configure rebuild green (from `rm -rf build && cmake …`, not incremental).
-- [ ] Full dump green on the bumped format; dumped compiled closures survive dump/reload.
-- [ ] update-elc bootstrap green after the `;ELC` bump — every tree `.elc` rebuilt.
-- [ ] `tests/elpa` fixtures green, byte-compiled path included.
-- [ ] `ctest -L gui` probes green.
-- [ ] Benchmark run and within budget (budget set by the benchmark ticket, against the
+- [x] Clean-configure rebuild green (from `rm -rf build && cmake …`, not incremental).
+- [x] Full dump green on the bumped format; dumped compiled closures survive dump/reload.
+- [x] update-elc bootstrap green after the `;ELC` bump — every tree `.elc` rebuilt.
+- [x] `tests/elpa` fixtures green, byte-compiled path included.
+- [x] `ctest -L gui` probes green.
+- [x] Benchmark run and within budget (budget set by the benchmark ticket, against the
       stock dynamic build as baseline).
-- [ ] cconv floor ≤ 2× interpreted floor. **Above it → trip-wire (ii)**.
+- [x] cconv floor ≤ 2× interpreted floor. **Above it → trip-wire (ii)**.
 
 ## P3 — acceptance-set conversion + vendor enablement
 
