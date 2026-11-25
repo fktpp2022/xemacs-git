@@ -698,10 +698,12 @@ do {								\
        GNU-style: the loader rebinds the interpreter environment, so
        the mode flag is exempt from the mode it controls.
 
-       XEmacs-only deviation (issue #144 Q2): activation is gated by
-       the `load-lexical-files' whitelist (default nil; see the
-       defvar below).  Sunset: retires when cconv lands in P2, at
-       which point the cookie alone activates.
+       P2 (#163): the cookie alone activates.  During P1 activation was
+       gated on the `load-lexical-files' whitelist because there was no
+       closure conversion and only a hand-picked file set could be
+       interpreted with a lexical environment; `byte-compile-file' now
+       converts lexbound files (P2-1, #157) and the whitelist is retired.
+       The variable still exists as an inert alias for diagnostics.
 
        Deliberately crude byte scan of the first 512 bytes; a real
        version would parse the cookie properly.  .elc loads skip the
@@ -738,13 +740,9 @@ do {								\
 				 || (lexbq[1] >= '0' && lexbq[1] <= '9'))
 			    && lexbq[1] != '_' && lexbq[1] != '-')
 			  {
-			    /* Whitelisting is data: membership (of the
-			       file's base name) is all that changes per
-			       file. */
-			    if (!NILP (Fmember (Ffile_name_nondirectory (found),
-						Vload_lexical_files)))
-			      specbind (Qinternal_interpreter_environment,
-						list1 (Qt));
+			    /* P2 (#163): the cookie alone activates; the whitelist gate
+			       that used to live here is retired. */
+			    specbind (Qinternal_interpreter_environment, list1 (Qt));
 			    lexbp = lexbend;
 			    continue;
 			  }
@@ -779,6 +777,12 @@ do {								\
     else
       load_byte_code_version = 100;
 
+    /* P2 (#163) bumped the writer to 21.  Version 20 stays readable:
+       every pre-built third-party package in the installed
+       xemacs-packages tree carries 20, and their .elc are semantically
+       unaffected by closure conversion (a compiled lexbound file bakes
+       its environments into its own closures).  Rejecting 20 here would
+       brick the package tree for no gain. */
     if (load_byte_code_version < 20)
       {
         signal_error_2 (Qinvalid_byte_code, "Byte code version not supported",
@@ -786,6 +790,18 @@ do {								\
                         found);
       }
 
+    /* Give this load its own atom-name buffer.  read_atom_0 accumulates
+       atom names in the single global Vread_buffer_stream, and a load can
+       be started from inside a read: decoding a wide character whose
+       Unicode mapping is not loaded yet calls
+       compiled_unicode_table_load() (unicode.c), which loads
+       compiled-unicode-tables.elc.  That nested load would otherwise
+       rewind and refill the buffer under the atom the interrupted read
+       was accumulating, interning a name made of the nested file's
+       leftovers (#164 interned "compiled-unicode-tables\0p").  Unwound by
+       the unbind_to below. */
+    internal_bind_lisp_object (&Vread_buffer_stream,
+			       make_resizing_buffer_output_stream ());
     readevalloop (lispstream, file, Feval, 0);
     if (!NILP (used_codesys))
       Fset (used_codesys,
@@ -3081,7 +3097,7 @@ read_list_conser (Lisp_Object readcharfun, void *state, Charcount UNUSED (len))
 {
   struct read_list_state *s = (struct read_list_state *) state;
   Lisp_Object elt;
-
+  NGCDECL1;
   elt = read1 (readcharfun);
 
   if (CONSP (elt) && UNBOUNDP (XCAR (elt)))
@@ -3130,12 +3146,14 @@ read_list_conser (Lisp_Object readcharfun, void *state, Charcount UNUSED (len))
 	}
     }
 
+  NGCPRO1 (elt);
   elt = Fcons (elt, Qnil);
   if (!NILP (s->tail))
     XCDR (s->tail) = elt;
   else
     s->head = elt;
   s->tail = elt;
+  NUNGCPRO;
  done:
   s->length++;
   return s;
@@ -3240,10 +3258,13 @@ read_vector (Lisp_Object readcharfun,
 
   sequence_reader (readcharfun, terminator, &s, read_list_conser);
 
-  UNGCPRO;
   tem = s.head;
   len = XFIXNUM (Flength (tem));
 
+  /* Do NOT UNGCPRO here: s.head still roots the element list, and
+     make_vector() is the one call in this window that can GC.  Dropping
+     the GCPRO first let the sweep free the elements before we copy them
+     into the vector (use-after-free in compiled-function constants).  */
   s.head = make_vector (len, Qnil);
 
   for (i = 0, p = &(XVECTOR_DATA (s.head)[0]);
@@ -3256,6 +3277,8 @@ read_vector (Lisp_Object readcharfun,
     tem = XCDR (otem);
     free_cons (otem);
   }
+  s.tail = Qnil;
+  UNGCPRO;
   return s.head;
 }
 
@@ -3265,8 +3288,8 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   /* Accept compiled functions at read-time so that we don't
      have to build them at load-time. */
   Lisp_Object stuff;
-  Lisp_Object make_byte_code_args[COMPILED_DOMAIN + 1];
-  struct gcpro gcpro1;
+  Lisp_Object make_byte_code_args[COMPILED_ENVIRONMENT + 1];
+  struct gcpro gcpro1, gcpro2;
   Elemcount iii = 0, len;
   Boolint saw_a_doc_ref = 0;
 
@@ -3275,7 +3298,7 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
      instructions and constants differently. */
   stuff = read_list (readcharfun, terminator, 0, 0);
   len = XFIXNUM (Flength (stuff));
-  if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_DOMAIN + 1)
+  if (len < COMPILED_STACK_DEPTH + 1 || len > COMPILED_ENVIRONMENT + 1)
     {
       return
         continuable_read_syntax_error ("#[...] used with wrong number of elements");
@@ -3320,9 +3343,8 @@ read_compiled_function (Lisp_Object readcharfun, Ichar terminator)
   }
 
   free_list (stuff);
-
-  GCPRO1 (make_byte_code_args[0]);
-  gcpro1.nvars = iii;
+  stuff = Qnil;
+  GCPRO2_ARRAY (make_byte_code_args, iii, &stuff, 1);
 
   stuff = Fmake_byte_code (iii, make_byte_code_args);
   if (saw_a_doc_ref)
@@ -3513,32 +3535,22 @@ Full name of file being loaded by `load'.
   DEFVAR_LISP ("load-lexical-files", &Vload_lexical_files /*
 List of file base names whose source may activate lexical binding.
 
-When `load' reads a SOURCE file whose first bytes declare the
-`lexical-binding: t' header, the interpreter's lexical environment
-is made active for that file's extent -- but only if the file's base
-name (as returned by `file-name-nondirectory', extension included)
-is a member of this list.  The C-level default is nil: in a process
-that never ran loadup (undumped temacs, bare batch runs), no file
-activates lexical binding and loading behavior is exactly that of a
-build without this feature.  The dumped build ships the full
-lexical-binding P1 whitelist (the twelve lexbound files) as the
-runtime default, installed by loadup.el past the dump-time preload
-extent (P1-7).  Byte-compiled (.elc) files never trigger the scan or
-the activation, regardless of this variable.
+Inert since P2 (#163).  While closure conversion was still missing
+this was a whitelist: only a SOURCE file whose base name (as returned
+by `file-name-nondirectory', extension included) appeared here had its
+`lexical-binding: t' header honoured.  `byte-compile-file' now
+converts lexbound files (P2-1, #157), so the header alone activates
+lexical binding, exactly as in GNU Emacs, and the value of this
+variable has no effect.  It survives one release as a no-op alias for
+diagnostics and retires after that.
 
-This option is a documented XEmacs-only deviation from GNU Emacs:
-GNU activates lexical binding from the cookie alone.  The whitelist
-exists because this build's interpreted-only closures are opt-in
-during the lexical-binding P1 phase.  Sunset: this variable retires
-when cconv lands (P2) -- the cookie alone will activate, GNU
-behavior -- after a release as a no-op alias for diagnostics.
+Byte-compiled (.elc) files never trigger the header scan or the
+activation; their lexical environments are baked into the compiled
+closures.
 */ );
   Vload_lexical_files = Qnil;
-  /* Lexical-binding P1-7 (#153): an ordinary dump root, not a
-     dump-nil root -- loadup.el installs the shipped twelve-file
-     whitelist past the dump-time preload extent, and the dumped
-     image must keep it as the runtime default.  The C-level default
-     (an undumped process, loadup never runs) stays nil. */
+  /* P2 (#163): inert alias, kept as an ordinary dump root so its
+     value survives the dump while the variable is still in the API. */
   staticpro (&Vload_lexical_files);
 
   DEFVAR_LISP ("load-read-function", &Vload_read_function /*

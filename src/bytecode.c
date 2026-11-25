@@ -837,6 +837,30 @@ bytecode_arithop (Lisp_Object obj1, Lisp_Object obj2, Opcode opcode)
 /* See comment before the big switch in execute_optimized_program(). */
 #define ADJUST_STACK_GCPRO  (gcpro1.nvars = stack_ptr - stack_beg)
 
+/* Lexbind env parity (#147) has Bvarref/Bvarset consult the active lexical
+   environment before the dynamic value.  When a dynamic `let' (Bvarbind /
+   arg specbind) is inner to the env frame the dynamic binding is the
+   innermost one and must win, or a dynamic callee reading its own local
+   aliased with a same-named lexical binding of its caller: set-keymap-parent
+   then saw one keymap for both its arguments ("Cyclic keymap indirection",
+   cnfonts-command-matrix-gui gate).  Env frames are themselves specbound on
+   internal-interpreter-environment, so scanning the specpdl from the top
+   decides it: symbol first => dynamic wins; env frame first => env wins. */
+static Boolint
+lexbind_dynamic_shadows_env_p (Lisp_Object symbol)
+{
+  struct specbinding *entry = specpdl_ptr;
+  Boolint saw_symbol = 0;
+  while (entry > specpdl)
+    {
+      entry--;
+      if (EQ (entry->symbol, Qinternal_interpreter_environment))
+	return saw_symbol;
+      if (!saw_symbol && EQ (entry->symbol, symbol))
+	saw_symbol = 1;
+    }
+  return saw_symbol;
+}
 
 /* The actual interpreter for byte code.
    This function has been seriously optimized for performance.
@@ -850,7 +874,8 @@ execute_optimized_program (const Opbyte *program,
 			   Elemcount program_length,
 #endif
 			   int stack_depth,
-			   Lisp_Object *constants_data)
+			   Lisp_Object *constants_data,
+			   Lisp_Object environment)
 {
   /* This function can GC */
   REGISTER const Opbyte *program_ptr = (Opbyte *) program;
@@ -921,7 +946,11 @@ execute_optimized_program (const Opbyte *program,
       meter_code (prev_opcode, this_opcode);
 #endif
 
-      switch (opcode)
+	/* The compiled function's lexical environment (P2-2 env slot); Qnil
+	   for dynamically-bound byte code. */
+	REGISTER Lisp_Object env = environment;
+
+	switch (opcode)
 	{
 	  REGISTER int n;
 
@@ -951,7 +980,26 @@ execute_optimized_program (const Opbyte *program,
 	do_varref:
 	{
 	  Lisp_Object symbol = constants_data[n];
-	  Lisp_Object value = XSYMBOL (symbol)->value;
+	  Lisp_Object value;
+
+	  /* P1-1 parity (#147): a compiled variable reference must consult
+	     the active lexical environment first, like Feval's symbol case,
+	     before falling back to the dynamic fast path.  Precedence:
+	     the innermost dynamic binding (on the specpdl) wins over the
+	     caller's ambient env. */
+	  if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol)
+	      && !lexbind_dynamic_shadows_env_p (symbol))
+	    {
+	      Lisp_Object binding
+		= Fassq (symbol, XCDR (Vinternal_interpreter_environment));
+	      if (CONSP (binding))
+		{
+		  PUSH (XCDR (binding));
+		  break;
+		}
+	    }
+
+	  value = XSYMBOL (symbol)->value;
 	  if (SYMBOL_VALUE_MAGIC_OR_OPAQUEP (value))
 	    value = Fsymbol_value (symbol);
 	  PUSH (value);
@@ -972,14 +1020,51 @@ execute_optimized_program (const Opbyte *program,
 	  Lisp_Symbol *symbol_ptr = XSYMBOL (symbol);
 	  Lisp_Object old_value = symbol_ptr->value;
 	  Lisp_Object new_value = POP;
-	  if (!SYMBOL_VALUE_MAGIC_P (old_value))
-	    symbol_ptr->value = new_value;
-	  else {
+
+	  /* P1-1 parity (#147): route through Fset when a lexical environment
+	     is active so env bindings are mutated, not the global value.  Precedence:
+	     the innermost dynamic binding (on the specpdl) wins over the
+	     caller's ambient env. */
+	  if ((LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol)
+	       && !lexbind_dynamic_shadows_env_p (symbol))
+	      || SYMBOL_VALUE_MAGIC_P (old_value))
 	    Fset (symbol, new_value);
-	  }
+	  else
+	    symbol_ptr->value = new_value;
 	    
 	  break;
 	}
+
+	case Blexref:					/* P2-3 (#159) */
+	  {
+	    n = READ_UINT_1;
+	    if (!VECTORP (env) || n >= XVECTOR_LENGTH (env))
+	      invalid_byte_code ("Blexref outside the function environment",
+				 make_fixnum (n));
+	    {
+	      Lisp_Object cell = XVECTOR_DATA (env)[n];
+	      if (!CONSP (cell))
+		invalid_byte_code ("Blexref cell is not a cons", cell);
+	      PUSH (XCAR (cell));
+	    }
+	    break;
+	  }
+
+	case Blexset:					/* P2-3 (#159) */
+	  {
+	    Lisp_Object value = POP;
+	    n = READ_UINT_1;
+	    if (!VECTORP (env) || n >= XVECTOR_LENGTH (env))
+	      invalid_byte_code ("Blexset outside the function environment",
+				 make_fixnum (n));
+	    {
+	      Lisp_Object cell = XVECTOR_DATA (env)[n];
+	      if (!CONSP (cell))
+		invalid_byte_code ("Blexset cell is not a cons", cell);
+	      XCAR (cell) = value;
+	    }
+	    break;
+	  }
 
 	case Bvarbind:
 	case Bvarbind+1:
@@ -1926,7 +2011,10 @@ static void
 check_opcode (Opcode opcode)
 {
   if ((opcode < Bvarref) ||
-      (opcode > Bassq && opcode < Bconstant))
+      /* P2-3 (#159): lexref/lexset live in the gap between Bassq and
+         Bconstant; everything else in the gap is still invalid. */
+      ((opcode > Bassq && opcode < Bconstant) &&
+       opcode != Blexref && opcode != Blexset))
     invalid_byte_code ("invalid opcode in instruction stream",
 		       make_fixnum (opcode));
 }
@@ -2193,6 +2281,12 @@ optimize_byte_code (/* in */
 	  WRITE_INT8 (arg, program_ptr);
 	  break;
 
+	case Blexref:					/* P2-3 (#159) */
+	case Blexset: /* one uint8 operand: environment cell index */
+	  READ_OPERAND_1;
+	  WRITE_INT8 (arg, program_ptr);
+	  break;
+
 	default:
 	  if (opcode < Bconstant)
 	    check_opcode (opcode);
@@ -2374,6 +2468,7 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
     XCOMPILED_FUNCTION (obj); /* GC doesn't relocate */
   int docp = f->flags.documentationp;
   int intp = f->flags.interactivep;
+  int envp = !NILP (compiled_function_environment (f));
   struct gcpro gcpro1, gcpro2;
   GCPRO2 (obj, printcharfun);
 
@@ -2413,7 +2508,7 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
   write_fmt_string (printcharfun, " %d", compiled_function_stack_depth (f));
 
   /* COMPILED_DOC_STRING = 4 */
-  if (docp || intp)
+  if (docp || intp || envp)
     {
       write_ascstring (printcharfun, " ");
       print_internal (compiled_function_documentation (f), printcharfun,
@@ -2421,10 +2516,21 @@ print_compiled_function (Lisp_Object obj, Lisp_Object printcharfun,
     }
 
   /* COMPILED_INTERACTIVE = 5 */
-  if (intp)
+  if (intp || envp)
     {
       write_ascstring (printcharfun, " ");
-      print_internal (compiled_function_interactive (f), printcharfun,
+      /* In the seven-element form (P2-4) a nil INTERACTIVE means "not
+	 interactive", so we can always emit this slot when an env is
+	 present and still round-trip.  */
+      print_internal (intp ? compiled_function_interactive (f) : Qnil,
+		      printcharfun, escapeflag);
+    }
+
+  /* COMPILED_ENVIRONMENT = 6, the lexical-binding environment (P2-4).  */
+  if (envp)
+    {
+      write_ascstring (printcharfun, " ");
+      print_internal (compiled_function_environment (f), printcharfun,
 		      escapeflag);
     }
 
@@ -2450,7 +2556,10 @@ compiled_function_equal (Lisp_Object obj1, Lisp_Object obj2, int depth,
      internal_equal (f1->constants,    f2->constants,    depth + 1) &&
      internal_equal (f1->arglist,      f2->arglist,      depth + 1) &&
      internal_equal (f1->doc_and_interactive,
-		     f2->doc_and_interactive, depth + 1));
+		     f2->doc_and_interactive, depth + 1) &&
+     /* P2-5 (#161): closures over different lexical environments are
+        not equal. */
+     internal_equal (f1->environment, f2->environment, depth + 1));
 }
 
 static void
@@ -2471,6 +2580,9 @@ compiled_function_print_preprocess (Lisp_Object object,
       PRINT_PREPROCESS (compiled_function_interactive (cf),
                         print_number_table, seen_object_count);
     }
+
+  PRINT_PREPROCESS (compiled_function_environment (cf),
+                    print_number_table, seen_object_count);
 }
 
 static void
@@ -2527,11 +2639,14 @@ static Hashcode
 compiled_function_hash (Lisp_Object obj, int depth, Boolint UNUSED (equalp))
 {
   Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (obj);
-  return HASH3 ((f->flags.documentationp << 2) +
+  return HASH4 ((f->flags.documentationp << 2) +
 		(f->flags.interactivep << 1) +
 		f->flags.domainp,
 		internal_hash (f->instructions, depth + 1, 0),
-		internal_hash (f->constants,    depth + 1, 0));
+		internal_hash (f->constants,    depth + 1, 0),
+		/* P2-5 (#161): keep the hash consistent with the updated
+		   equal. */
+		internal_hash (f->environment,  depth + 1, 0));
 }
 
 static const struct memory_description compiled_function_description[] = {
@@ -2542,6 +2657,10 @@ static const struct memory_description compiled_function_description[] = {
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, constants) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, arglist) },
   { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, doc_and_interactive) },
+  /* P2-2 (#158): lexical-binding environment.  One row: GC marking and
+     the portable dumper both walk this description, so no src/dumper.c
+     edits are needed. */
+  { XD_LISP_OBJECT, offsetof (Lisp_Compiled_Function, environment) },
   { XD_END }
 };
 
@@ -2764,6 +2883,47 @@ set_compiled_function_constants (Lisp_Compiled_Function *f, Lisp_Object new_)
 {
   CHECK_VECTOR (new_);
   f->constants = new_;
+}
+
+Lisp_Object
+compiled_function_environment (Lisp_Compiled_Function *f)
+{
+  return f->environment;
+}
+
+void
+set_compiled_function_environment (Lisp_Compiled_Function *f,
+				   Lisp_Object new_)
+{
+  /* P2-2: any Lisp value is acceptable, including nil (dynamic
+     binding).  The GNU shape (leading t when active) is enforced by
+     callers, not here. */
+  f->environment = new_;
+}
+
+DEFUN ("compiled-function-environment", Fcompiled_function_environment,
+       1, 1, 0, /*
+Return the lexical-binding environment of the compiled-function object
+FUNCTION, or nil if it has none.  P2-2 low-level accessor; the
+reader-facing interface arrives with the make-byte-code env argument
+(see the lexical-binding milestone plan). */
+       (function))
+{
+  CHECK_COMPILED_FUNCTION (function);
+  return compiled_function_environment (XCOMPILED_FUNCTION (function));
+}
+
+DEFUN ("set-compiled-function-environment", Fset_compiled_function_environment,
+       2, 2, 0, /*
+Set the lexical-binding environment of the compiled-function object
+FUNCTION to ENV.  P2-2 low-level accessor, for tests and the P2 byte-op
+plumbing; the reader-facing interface arrives with the make-byte-code
+env argument (see the lexical-binding milestone plan). */
+       (function, env))
+{
+  CHECK_COMPILED_FUNCTION (function);
+  set_compiled_function_environment (XCOMPILED_FUNCTION (function), env);
+  return env;
 }
 
 void
@@ -3016,7 +3176,8 @@ If STACK-DEPTH is incorrect, Emacs may crash.
 				    program_length,
 #endif
 				    XFIXNUM (stack_depth),
-				    XVECTOR_DATA (constants));
+				    XVECTOR_DATA (constants),
+				    Qnil);
 }
 
 
@@ -3045,6 +3206,8 @@ syms_of_bytecode (void)
   DEFSUBR (Fcompiled_function_stack_depth);
   DEFSUBR (Fcompiled_function_arglist);
   DEFSUBR (Fcompiled_function_interactive);
+  DEFSUBR (Fcompiled_function_environment);
+  DEFSUBR (Fset_compiled_function_environment);
   DEFSUBR (Fcompiled_function_documentation);
   Ffset (intern ("compiled-function-doc-string"),
          intern ("compiled-function-documentation"));

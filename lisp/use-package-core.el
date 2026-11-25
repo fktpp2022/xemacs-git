@@ -46,10 +46,10 @@
 (eval-when-compile
   (if (and (eq emacs-major-version 24) (eq emacs-minor-version 3))
       (progn
-        (defsubst hash-table-keys (hash-table)
+        (defun hash-table-keys (hash-table)
           "Return a list of keys in HASH-TABLE."
           (cl-loop for k being the hash-keys of hash-table collect k))
-        (defsubst string-suffix-p (suffix string  &optional ignore-case)
+        (defun string-suffix-p (suffix string  &optional ignore-case)
           (let ((start-pos (- (length string) (length suffix))))
             (and (>= start-pos 0)
                  (eq t (compare-strings suffix nil nil
@@ -352,30 +352,30 @@ undefined variables."
 ;;; Utility functions
 ;;
 
-(defsubst use-package-error (msg)
+(defun use-package-error (msg)
   "Report MSG as an error, so the user knows it came from this package."
   (error "use-package: %s" msg))
 
-(defsubst use-package-concat (&rest elems)
+(defun use-package-concat (&rest elems)
   "Delete all empty lists from ELEMS (nil or (list nil)), and append them."
   (apply #'append (delete nil (delete (list nil) elems))))
 
-(defsubst use-package-non-nil-symbolp (sym)
+(defun use-package-non-nil-symbolp (sym)
   (and sym (symbolp sym)))
 
-(defsubst use-package-as-symbol (string-or-symbol)
+(defun use-package-as-symbol (string-or-symbol)
   "If STRING-OR-SYMBOL is already a symbol, return it.
 Otherwise convert it to a symbol and return that."
   (if (symbolp string-or-symbol) string-or-symbol
     (intern string-or-symbol)))
 
-(defsubst use-package-as-string (string-or-symbol)
+(defun use-package-as-string (string-or-symbol)
   "If STRING-OR-SYMBOL is already a string, return it.
 Otherwise convert it to a string and return that."
   (if (stringp string-or-symbol) string-or-symbol
     (symbol-name string-or-symbol)))
 
-(defsubst use-package-regex-p (re)
+(defun use-package-regex-p (re)
   "Return t if RE is some regexp-like thing."
   (or (and (listp re) (eq (car re) 'rx))
       (stringp re)))
@@ -387,7 +387,7 @@ Otherwise convert it to a string and return that."
    ((stringp re) re)
    (t (error "Not recognized as regular expression: %s" re))))
 
-(defsubst use-package-is-pair (x car-pred cdr-pred)
+(defun use-package-is-pair (x car-pred cdr-pred)
   "Return non-nil if X is a cons satisfying the given predicates.
 CAR-PRED and CDR-PRED are applied to X's `car' and `cdr',
 respectively."
@@ -404,7 +404,7 @@ appended."
                 string
               (concat string "-mode")))))
 
-(defsubst use-package-load-name (name &optional noerror)
+(defun use-package-load-name (name &optional noerror)
   "Return a form which will load or require NAME.
 It does the right thing no matter if NAME is a string or symbol.
 Argument NOERROR means to indicate load failures as a warning."
@@ -489,17 +489,17 @@ This is in contrast to merely setting it to 0."
               plist (cddr plist))))
     p))
 
-(defsubst use-package-plist-maybe-put (plist property value)
+(defun use-package-plist-maybe-put (plist property value)
   "Add a VALUE for PROPERTY to PLIST, if it does not already exist."
   (if (plist-member plist property)
       plist
     (plist-put plist property value)))
 
-(defsubst use-package-plist-cons (plist property value)
+(defun use-package-plist-cons (plist property value)
   "Cons VALUE onto the head of the list at PROPERTY in PLIST."
   (plist-put plist property (cons value (plist-get plist property))))
 
-(defsubst use-package-plist-append (plist property value)
+(defun use-package-plist-append (plist property value)
   "Append VALUE onto the front of the list at PROPERTY in PLIST."
   (plist-put plist property (append value (plist-get plist property))))
 
@@ -799,7 +799,7 @@ no more than once."
                               (setq ,loaded t ,result ,arg))))
       ,@(funcall f `((funcall ,next))))))
 
-(defsubst use-package-normalize-value (_label arg)
+(defun use-package-normalize-value (_label arg)
   "Normalize the Lisp value given by ARG.
 The argument LABEL is ignored."
   (cond ((null arg) nil)
@@ -1210,7 +1210,7 @@ meaning:
 (defvar use-package--form)
 (defvar use-package--hush-function #'(lambda (_keyword body) body))
 
-(defsubst use-package-hush (context keyword body)
+(defun use-package-hush (context keyword body)
   `((condition-case-unless-debug err
         ,(macroexp-progn body)
       (error (funcall ,context ,keyword err)))))

@@ -17,4 +17,15 @@
 
 (provide 'lexbind-dump-demo)
 
+;; Lexical-binding core (P2-2, ticket #158): hand-build a compiled
+;; function carrying a non-nil `environment' slot and park it in a
+;; defvar, so the dumped image exercises the new
+;; { XD_LISP_OBJECT, offsetof (environment) } row in
+;; compiled_function_description on both the dump and the reload side.
+;; tests/automated/lexbind-cfenv-tests.el asserts the env survives.
+(defvar lexbind-demo-cf-env nil)
+(let ((cf (make-byte-code '(x) "\x87" [1 2 3] 1)))
+  (set-compiled-function-environment cf (list t '(lexical-var . 42)))
+  (setq lexbind-demo-cf-env cf))
+
 ;;; lexbind-dump-demo.el ends here

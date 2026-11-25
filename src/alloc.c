@@ -2135,6 +2135,7 @@ make_compiled_function (void)
   f->args = NULL;
   f->max_args = f->min_args = f->args_in_array = 0;
   f->doc_and_interactive = Qnil;
+  f->environment = Qnil;
   return wrap_compiled_function (f);
 }
 
@@ -2148,26 +2149,36 @@ specified, then that means the function is not interactive.
 This is terrible behavior which is retained for compatibility with old
 `.elc' files which expect these semantics.
 
-arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTERACTIVE)
+arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTERACTIVE ENV)
 */
        (int nargs, Lisp_Object *args))
 {
 /* In a non-insane world this function would have this arglist...
-   (arglist instructions constants stack_depth &optional doc_string interactive)
+   (arglist instructions constants stack_depth &optional doc_string interactive env)
  */
+  NGCDECL1;
   Lisp_Object fun = make_compiled_function ();
+  NGCPRO1 (fun);
   Lisp_Compiled_Function *f = XCOMPILED_FUNCTION (fun);
-
   Lisp_Object arglist      = args[0];
   Lisp_Object instructions = args[1];
   Lisp_Object constants    = args[2];
   Lisp_Object stack_depth  = args[3];
   Lisp_Object doc_string   = (nargs > 4) ? args[4] : Qnil;
   Lisp_Object interactive  = (nargs > 5) ? args[5] : Qunbound;
+  Lisp_Object environment  = (nargs > 6) ? args[6] : Qnil;
 
-  if (nargs < 4 || nargs > 6)
+  if (nargs < 4 || nargs > 7)
     return Fsignal (Qwrong_number_of_arguments,
 		    list2 (intern ("make-byte-code"), make_fixnum (nargs)));
+
+  /* With seven arguments (the P2 form, #160) the terrible historical
+     nil-means-`(interactive)' quirk does NOT apply: a nil INTERACTIVE
+     means the function is not interactive.  This is what the printer
+     emits for a seven-element #[...] form, so print/read round-trips.
+     Five- and six-argument calls keep the compatibility behavior.  */
+  if (nargs == 7 && NILP (interactive))
+    interactive = Qunbound;
 
   /* Check for valid formal parameter list now, to allow us to use
      SPECBIND_FAST_UNSAFE() later in funcall_compiled_function(). */
@@ -2216,6 +2227,9 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
   if (UNBOUNDP (f->doc_and_interactive))
     f->doc_and_interactive = Qnil;
 
+  f->environment = environment;
+
+/* [DEBUG-gc1] forced GC removed; FUN now protected from allocation (see top). */
   if (!CONSP (doc_string) || purify_flag)
     {
       set_compiled_function_annotation (f, Vload_file_name_internal);
@@ -2228,6 +2242,7 @@ arguments: (ARGLIST INSTRUCTIONS CONSTANTS STACK-DEPTH &optional DOC-STRING INTE
       optimize_compiled_function (fun);
     }
 
+  NUNGCPRO;
   return fun;
 }
 

@@ -36,3 +36,9 @@ config-h-*.h
 config-log-*.txt
 docs/reference/
 **/auto-autoloads.el
+build_debug/
+
+# CTest output and shared agent-skill symlinks (local dev pointers)
+Testing/
+/.agents
+/.claude

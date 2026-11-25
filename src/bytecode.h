@@ -39,6 +39,9 @@ along with XEmacs.  If not, see <http://www.gnu.org/licenses/>. */
 #define COMPILED_DOC_STRING	4
 #define COMPILED_INTERACTIVE	5
 #define COMPILED_DOMAIN		6
+/* Lexical-binding environment (P2-4, #160).  Occupies element 6 of the
+   #[...] form in non-I18N3 builds, i.e. the seventh element.  */
+#define COMPILED_ENVIRONMENT	6
 
 #ifdef DEBUG_XEMACS
 /* Define BYTE_CODE_METER to enable generation of a byte-op usage
@@ -77,6 +80,11 @@ struct Lisp_Compiled_Function
   int args_in_array;
   /* This uses the minimal number of conses; see accessors in data.c. */
   Lisp_Object doc_and_interactive;
+  /* Lexical-binding environment captured with this function (P2-2).
+     GNU shape: a list whose CAR is t when the env is active.  Qnil for
+     dynamically-bound code.  Automatically GC-marked and dumped via
+     compiled_function_description. */
+  Lisp_Object environment;
 };
 typedef struct Lisp_Compiled_Function Lisp_Compiled_Function;
 
@@ -92,6 +100,9 @@ void        set_compiled_function_annotation (Lisp_Compiled_Function *,
                                               Lisp_Object);
 Lisp_Object compiled_function_domain        (Lisp_Compiled_Function *f);
 Lisp_Object compiled_function_interactive   (Lisp_Compiled_Function *f);
+Lisp_Object compiled_function_environment   (Lisp_Compiled_Function *f);
+void        set_compiled_function_environment (Lisp_Compiled_Function *,
+                                               Lisp_Object);
 
 Lisp_Object Fset_compiled_function_documentation (Lisp_Object f,
                                                   Lisp_Object new_doc);
@@ -107,7 +118,8 @@ Lisp_Object execute_optimized_program (const Opbyte *program,
 				       Elemcount program_length,
 #endif
 				       int stack_depth,
-				       Lisp_Object *constants_data);
+				       Lisp_Object *constants_data,
+				       Lisp_Object environment);
 
 DECLARE_LISP_OBJECT (compiled_function, Lisp_Compiled_Function);
 #define XCOMPILED_FUNCTION(x) XRECORD (x, compiled_function, \
