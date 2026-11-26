@@ -3846,7 +3846,8 @@ Stack plan:
             (byte-compile-push-constant i)      ;; push index
             (byte-compile-lexbind-cell-of v)    ;; push cell
             (byte-compile-out 'byte-aset 0)     ;; env, cell
-            (byte-compile-discard))             ;; env
+            (byte-compile-discard)              ;; env
+            (setq i (1+ i)))                    ;; #166: advance to next slot
           )))))
 
 (defun byte-compile-lexbind-emit-closure (fun)

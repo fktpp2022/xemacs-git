@@ -137,3 +137,21 @@
     ;; got wrong (it emitted a dynamic varref, `void-variable x').
     (Assert (eq (funcall closure) 42))))
 
+;; #166 regression: TWO captures force the env-building loop to use a
+;; non-zero slot.  The loop used to emit one index constant for every
+;; capture (the counter was never advanced), so every cell landed in
+;; slot 0 and reading slot >= 1 signalled
+;; `Invalid byte code: Blexref cell is not a cons'.
+(let* ((byte-compile-lexical-binding t)
+       (code (byte-compile
+	      '(lambda ()
+		 (let ((a 'alpha) (b 'beta))
+		   (lambda () (list b a))))))
+       (closure (funcall code)))
+  (Assert (compiled-function-p closure))
+  (let ((env (compiled-function-environment closure)))
+    (Assert (= (length env) 2))
+    (Assert (consp (aref env 0)))
+    (Assert (consp (aref env 1))))
+  (Assert (equal (funcall closure) '(beta alpha))))
+
