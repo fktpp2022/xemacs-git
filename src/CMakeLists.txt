@@ -866,11 +866,12 @@ if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   add_custom_command(
     OUTPUT "${CMAKE_BINARY_DIR}/lisp/.copied"
     DEPENDS ${_lisp_source_files}
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${CMAKE_SOURCE_DIR}/lisp"
-      "${CMAKE_BINARY_DIR}/lisp"
+    COMMAND ${CMAKE_COMMAND}
+      -DSRC_LISP_DIR=${CMAKE_SOURCE_DIR}/lisp
+      -DBUILD_DIR=${CMAKE_BINARY_DIR}
+      -P ${CMAKE_SOURCE_DIR}/cmake/CopyLispNoElc.cmake
     COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/lisp/.copied"
-    COMMENT "Copying lisp/ to build tree"
+    COMMENT "Copying lisp/ to build tree (excluding .elc)"
     VERBATIM
   )
 
