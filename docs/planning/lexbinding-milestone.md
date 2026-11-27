@@ -175,8 +175,68 @@ Work items:
 - [x] `tests/elpa` fixtures green, byte-compiled path included.
 - [x] `ctest -L gui` probes green.
 - [x] Benchmark run and within budget (budget set by the benchmark ticket, against the
-      stock dynamic build as baseline).
+      stock dynamic build as baseline). See the **P2 gate verdicts** section below for the
+      final numbers, the env-guard hoist, and the benchmark method requirements.
 - [x] cconv floor ≤ 2× interpreted floor. **Above it → trip-wire (ii)**.
+
+### P2 gate verdicts
+
+Record of the P2 gate tickets, kept here so the landing does not need GitHub history:
+
+| Ticket | Verdict | Notes |
+|---|---|---|
+| [#168](https://github.com/fktpp2022/xemacs-git/issues/168) | **Pass** | Precedence review: the env-vs-dynamic precedence (`lexbind_dynamic_shadows_env_p`, innermost binding wins) is sound. |
+| [#169](https://github.com/fktpp2022/xemacs-git/issues/169) | **Pass** | Bytecode-stream review: `;ELC` 20→21 bump and the 7-element `#[…]` compiled-function form. |
+| [#170](https://github.com/fktpp2022/xemacs-git/issues/170) | **Pass** | Loader/GC review: dump + reload of compiled closures with env slots. |
+| [#166](https://github.com/fktpp2022/xemacs-git/issues/166) | **Fixed** | Root cause: a stale `.elc` left in the source tree by an in-source build was deep-copied into the build tree and never recompiled. Fixed by `cmake/CopyLispNoElc.cmake` (copies `lisp/` excluding `*.elc`), wired into `src/CMakeLists.txt`. |
+| [#172](https://github.com/fktpp2022/xemacs-git/issues/172) | **Pass** | Clean-configure rebuild (`rm -rf build && cmake …`), not incremental. |
+| [#173](https://github.com/fktpp2022/xemacs-git/issues/173) | **Pass after hoist** | P2 VM was materially slower than stock on the dynamic benchmark. The cost was the per-opcode `LEXBIND_ENV_ACTIVE_P()` guard in `execute_optimized_program`. Fixed by hoisting the guard to function entry (cached in a local, refreshed only at the cold env-mutation sites). Numbers below. |
+| [#171](https://github.com/fktpp2022/xemacs-git/issues/171) | **Resolved** | Decide #166's disposition: fixed in this landing (see #166 above). |
+
+**#173 benchmark (env-guard hoist).** `tests/lexbind-p2-bench.el`, identical stock-compiled
+`.elc` under all three binaries, paired interleaved rounds, medians. Three binaries, all
+`XEMACS_WITH_ERROR_CHECKING` identical (ON):
+
+- stock = `origin/xemacs-cmake` Release; base = P2 HEAD; hoist = P2 HEAD + env-guard hoist.
+
+```
+stock   arith 0.0476  varref 0.0732  varset 0.0581
+base    arith 0.0508  varref 0.0801  varset 0.0669   vs stock: +8.4% / +9.0% / +15.0%
+hoist  arith 0.0460  varref 0.0755  varset 0.0574   vs stock: -1.5% / +0.7% / -1.0%
+                                             vs base:    varref -7.0% (21/25 faster)
+                                                          varset -14.8% (20/25 faster)
+```
+
+The hoist lands the P2 VM at stock parity on the dynamic fast path. Regression test:
+`tests/automated/lexbind-hoist-tests.el` (env turned on mid-frame by `setq` and by `let` of
+the env symbol; a read must see the new env — red on a hoist without refresh sites, green
+with them).
+
+**Benchmark method requirements (cost this landing in dead measurements).** Each one,
+independently, produced a wrong number here:
+
+1. **Same configure for every binary.** `XEMACS_WITH_ERROR_CHECKING` differs across trees
+   (ON in the stock/P2 worktrees, OFF in `build_release`). Comparing an OFF binary against
+   an ON binary reads as a 3× "speedup" that is purely the error-check instrumentation.
+2. **Every binary must carry a fresh dump.** `make xemacs` relinks but does **not** regenerate
+   `xemacs.dmp`; a stale dump loaded by a changed VM crashes with SIGSEGV in `print_charset`,
+   which reads as a code bug. Rebuild with `make build-all`.
+3. **A derivative build tree must build its own source.** Copying a configured tree with
+   `cp -a` preserves CMake's absolute-path references, so the copy's `make` recompiles the
+   *original* tree's source and the variant never lands — producing bit-identical binaries
+   that all "pass" regardless of the edit.
+
+**A pre-existing build tree can carry a stale compiler (#166 class), and no rebuild fixes
+it.** `build_release/` was configured before the #166 compiler fix landed; its
+`lisp/bytecomp.elc` predates the fix by a minute yet is newer than its `.el`, so `make`
+never recompiles it, and the dumped/preloaded `bytecomp` stays the buggy version. Symptom:
+`use-package-tests` aborts with `Blexref cell is not a cons`, and the two-capture probe
+`(let ((a 1) (b 2)) (lambda () (list b a)))` yields `env=nil` instead of `env=[(1) (2)]`.
+The hoist is innocent here — baseline and hoist fail identically in that tree. Verify with a
+**fresh clean build tree** (a new out-of-tree directory, not `make` in the old one): the
+clean tree passes `use-package-tests` 60/60 and the probe returns `env=[(1) (2)]`. Do not
+trust a long-lived build directory across a compiler fix; rebuild from scratch or use a new
+build dir. (`build_clean/` is that fresh tree.)
 
 ## P3 — acceptance-set conversion + vendor enablement
 

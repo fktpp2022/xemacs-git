@@ -921,6 +921,17 @@ execute_optimized_program (const Opbyte *program,
   /* See comment above explaining the `[1]' */
   GCPRO1 (stack_ptr[1]);
 
+  /* P2: LEXBIND_ENV_ACTIVE_P() is loop-invariant for the whole execution of
+     this function: callees specbind/unbind internal-interpreter-environment
+     in balance (any Bcall returns with it restored), so only THIS frame's
+     own Bvarbind/Bvarset/Bunbind on that exact symbol can move it; those
+     cold cases refresh the local below.  Re-evaluating the global load +
+     CONSP + EQ on every Bvarref/Bvarset cost ~6% on the benchmark's dynamic
+     control loop (P2 gate #173).
+     ponytail: if some future path mutates the global mid-frame without a
+     refresh, hoist becomes stale -- add the refresh there too. */
+  REGISTER int lexbind_env_active = LEXBIND_ENV_ACTIVE_P ();
+
   while (1)
     {
       REGISTER Opcode opcode = (Opcode) READ_UINT_1;
@@ -987,7 +998,7 @@ execute_optimized_program (const Opbyte *program,
 	     before falling back to the dynamic fast path.  Precedence:
 	     the innermost dynamic binding (on the specpdl) wins over the
 	     caller's ambient env. */
-	  if (LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol)
+	  if (lexbind_env_active && !SYMBOL_SPECIAL_P (symbol)
 	      && !lexbind_dynamic_shadows_env_p (symbol))
 	    {
 	      Lisp_Object binding
@@ -1025,13 +1036,17 @@ execute_optimized_program (const Opbyte *program,
 	     is active so env bindings are mutated, not the global value.  Precedence:
 	     the innermost dynamic binding (on the specpdl) wins over the
 	     caller's ambient env. */
-	  if ((LEXBIND_ENV_ACTIVE_P () && !SYMBOL_SPECIAL_P (symbol)
+	  if ((lexbind_env_active && !SYMBOL_SPECIAL_P (symbol)
 	       && !lexbind_dynamic_shadows_env_p (symbol))
 	      || SYMBOL_VALUE_MAGIC_P (old_value))
 	    Fset (symbol, new_value);
 	  else
 	    symbol_ptr->value = new_value;
-	    
+
+	  /* Cold: only a setq of the env head itself invalidates the hoist. */
+	  if (EQ (symbol, Qinternal_interpreter_environment))
+	    lexbind_env_active = LEXBIND_ENV_ACTIVE_P ();
+
 	  break;
 	}
 
@@ -1098,6 +1113,8 @@ execute_optimized_program (const Opbyte *program,
 	    {
 	      specbind_magic (symbol, new_value);
 	    }
+	  if (EQ (symbol, Qinternal_interpreter_environment))
+	    lexbind_env_active = LEXBIND_ENV_ACTIVE_P ();
 	  break;
 	}
 
@@ -1135,6 +1152,8 @@ execute_optimized_program (const Opbyte *program,
 	  UNBIND_TO (specpdl_depth() -
 		     (opcode <  Bunbind+6 ? opcode-Bunbind :
 		      opcode == Bunbind+6 ? READ_UINT_1 : READ_UINT_2));
+	  /* Cold: an env entry unbound here can flip the hoist. */
+	  lexbind_env_active = LEXBIND_ENV_ACTIVE_P ();
 	  break;
 
 
@@ -1259,6 +1278,8 @@ execute_optimized_program (const Opbyte *program,
 	  /* To unbind back to the beginning of this frame.  Not used yet,
 	     but will be needed for tail-recursion elimination. */
 	  unbind_to (speccount);
+	  /* Cold: may restore an env entry bound in this frame. */
+	  lexbind_env_active = LEXBIND_ENV_ACTIVE_P ();
 	  break;
 
 	case Bnth:
