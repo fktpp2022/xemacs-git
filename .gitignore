@@ -37,6 +37,9 @@ config-log-*.txt
 docs/reference/
 **/auto-autoloads.el
 build_debug/
+build_clean/
+build_release/
+.scratch/
 
 # CTest output and shared agent-skill symlinks (local dev pointers)
 Testing/
